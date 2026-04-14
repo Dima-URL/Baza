@@ -1,0 +1,258 @@
+/* Базовые сбросы и шрифты */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f4f7f6; /* Мягкий светло-серый */
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #333;
+}
+
+header {
+  height: 15vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.name-header {
+  font-size: 32px;
+  text-align: center;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -1px;
+  color: #1a1a1a;
+}
+
+.text-warning {
+  text-align: center;
+  color: #d93025;
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 8px;
+  padding: 0 20px;
+}
+
+main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 85vh;
+}
+
+/* Секция кнопок */
+.section-btns {
+  display: flex;
+  gap: 20px;
+}
+
+.btn {
+  width: 220px;
+  height: 50px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn.register {
+  background-color: #000;
+  color: white;
+}
+
+.btn.logIn {
+  background-color: #2ecc71; /* Приятный зеленый */
+  color: white;
+}
+
+.btn:hover {
+  cursor: pointer;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+/* Модальные окна (Dialog) */
+dialog {
+  border: none;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  background: white;
+}
+
+.modal-register, .modal-logIn {
+  width: 100%;
+  max-width: 400px;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px); /* Эффект размытия фона */
+}
+
+/* Формы */
+.title-form {
+  margin-bottom: 30px;
+  font-weight: 700;
+  font-size: 24px;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+}
+
+input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box; /* Важно: чтобы padding не раздувал ширину */
+  height: 45px;
+  margin: 8px 0 20px 0;
+  padding: 0 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background: #f9f9f9;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #2ecc71;
+  background: white;
+}
+
+/* Поле с доменом @baza.xyz */
+.label-el-forms {
+  position: relative;
+}
+
+#enter-email {
+  width: 100%;
+  padding-right: 90px; /* Место под текст @baza.xyz */
+}
+
+.baza-xyz {
+  position: absolute;
+  right: 15px;
+  top: 38px;
+  font-size: 14px;
+  color: #aaa;
+}
+
+/* Кнопки в формах */
+.btn-create-account {
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 8px;
+  background-color: #2ecc71;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-create-account:hover {
+  background-color: #27ae60;
+}
+
+/* Кнопка закрытия */
+#close-modal-register,
+#close-modal-logIn,
+.close-modal-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  padding: 10px;
+}
+
+#close-modal-register:hover,
+#close-modal-logIn:hover,
+.close-modal-btn {
+  opacity: 1;
+}
+
+/*  notify...  */
+.notify {
+  /* Сбрасываем системные стили диалога */
+  position: fixed;
+  margin: 0;
+  top: auto;
+  left: auto;
+  bottom: 20px;
+  right: 20px;
+
+  /* Твои стили */
+  min-width: 280px;
+  max-width: 400px;
+  padding: 15px 45px 15px 20px;
+  border-radius: 12px;
+  background: white;
+  border: none; /* Убираем черную рамку диалога */
+  border-left: 6px solid #2ecc71;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+
+  /* Анимация */
+  display: flex;
+  align-items: center;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+/* Убираем затемнение именно для этого диалога */
+.notify::backdrop {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Скрытое состояние (когда диалог не открыт, стили не важны, но для анимации оставим) */
+.notify:not([open]) {
+  display: none;
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notify-close-btn {
+  position: absolute;
+  /* !!! ИСПРАВЛЕНИЕ ТУТ !!! */
+  right: 8px;   /* Отступ от правого края */
+  top: 8px;     /* Отступ от верхнего края (вместо top: 50%) */
+  transform: none; /* Убираем translateY(-50%), он больше не нужен */
+
+  /* Твои старые стили кнопки */
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 5px; /* Площадь клика */
+  display: flex;
+  transition: opacity 0.2s;
+}
+
+.notify-close-btn:hover {
+  opacity: 1;
+}
+
+/* Стилизация текста */
+#notify-text {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  word-wrap: break-word;
+  color: #333;
+  /* Убедись, что текст не имеет лишних отступов сверху */
+  margin: 0;
+}
+/*  ...notify  */

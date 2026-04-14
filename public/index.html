@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baza</title>
+  <link rel="stylesheet" href="styles/styles_main.css">
+  <link rel="icon" href="/images/favicon.png">
+</head>
+<body>
+  <dialog id="notify-global" class="notify">
+    <span id="notify-text"></span>
+    <button id="notify-close" class="notify-close-btn">
+      <img src="./images/close.png" style="width: 12px;">
+    </button>
+  </dialog>
+
+  <header>
+    <p class="name-header">Baza</p>
+    <p class="text-warning">
+      ⚠️ WARNING: The network training ground for practicing hacking and security skills. ⚠️<br>
+      ⚠️ Entering real personal information is strictly prohibited and will not be protected. ⚠️
+    </p>
+  </header>
+
+  <main>
+    <section class="section-btns">
+      <button type="button" class="btn register">Register</button>
+      <button type="button" class="btn logIn">Log In</button>
+    </section>
+  </main>
+
+    <dialog class="modal-register" id="modal-register">
+      <form id="form-register">
+        <h1 class="title-form">Register</h1>
+
+        <label for="enter-username">
+          Enter username:
+          <input type="text" id="enter-username" name="username"
+          placeholder="User1" value="" required minlength="3" maxlength="64">
+        </label>
+
+        <label for="enter-email" class="label-el-forms">
+          Enter fictional email:
+          <input type="text" id="enter-email" name="text"
+          placeholder="User1" value="" required minlength="3" maxlength="128">
+          <p class="baza-xyz">@baza.xyz</p>
+        </label>
+
+        <label for="enter-password" class="label-el-forms">
+          Enter password:
+          <input type="password" id="enter-password" name="password"
+          placeholder="w&1KjR%5..." value="" required minlength="8" maxlength="128">
+        </label>
+
+        <div class="div-btn-create-login">
+          <button type="submit" class="btn-create-account" id="btn-create-account">
+            Create Account
+          </button>
+        </div>
+      </form>
+
+      <button id="close-modal-register">
+        <img class="img-close-modal" style="width: 15px;" src="./images/close.png">
+      </button>
+    </dialog>
+
+    <dialog class="modal-logIn" id="modal-logIn">
+      <form id="form-logIn">
+        <h1 class="title-form">Log In</h1>
+
+        <label for="logIn-email" class="label-el-forms">
+          Enter fictional email:
+          <input type="email" id="logIn-email" name="email"
+          placeholder="User1@baza.xyz" value="" required minlength="3" maxlength="137">
+        </label>
+
+        <label for="logIn-password" class="label-el-forms">
+          Enter password:
+          <input type="password" id="logIn-password" name="password"
+          placeholder="w&1KjR%5..." value="" required minlength="8" maxlength="128">
+        </label>
+
+        <div class="div-btn-create-login">
+          <button type="submit" class="btn-create-account" id="btn-LogIn">
+            Log In
+          </button>
+        </div>
+      </form>
+
+      <button id="close-modal-logIn">
+        <img class="img-close-modal" style="width: 15px;" src="./images/close.png">
+      </button>
+    </dialog>
+
+  <script type="module" src="./scripts/script_main.js"></script>
+</body>
+</html>

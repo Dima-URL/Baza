@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baza - Profile</title>
+  <link rel="stylesheet" href="./styles/styles_profile.css">
+  <link rel="icon" href="/images/favicon.png">
+</head>
+<body>
+  <dialog id="notify-global" class="notify">
+    <span id="notify-text"></span>
+    <button id="notify-close" class="notify-close-btn">
+      <img src="./images/close.png" style="width: 12px;">
+    </button>
+  </dialog>
+
+  <header>
+    <div class="header-content">
+      <div class="user-info">
+        <h1>Welcome, <span id="user-name">...</span></h1>
+      </div>
+
+      <div class="nav-btns">
+        <button id="settings-btn" class="btn">Settings</button>
+        <button id="logout-btn" class="btn">Log Out</button>
+      </div>
+    </div>
+  </header>
+
+  <dialog class="modal-settings" id="modal-settings">
+    <button class="close-modal-btn" id="close-modal">
+      <img class="img-close-modal" style="width: 15px;" src="./images/close.png">
+    </button>
+
+    <h2>Settings</h2>
+
+    <section class="section-settings">
+      <div class="label-setting">
+        Username
+        <div class="input-group">
+          <input type="text" id="settings-username" disabled>
+          <button id="change-username-btn" class="setting-btn">Change</button>
+        </div>
+      </div>
+
+      <div class="label-setting">
+        Email
+        <div class="input-group">
+          <input type="text" id="settings-email" disabled>
+          <button id="change-email-btn" class="setting-btn">Change</button>
+        </div>
+      </div>
+
+      <div class="label-setting">
+        Password
+        <div class="input-group">
+          <input type="password" id="settings-password" value="********" disabled>
+          <button id="change-password-btn" class="setting-btn">Change</button>
+        </div>
+      </div>
+
+      <div class="label-setting">
+        <button id="delete-account-btn">DELETE ACCOUNT</button>
+      </div>
+
+    </section>
+  </dialog>
+
+  <dialog class="modal-change-username" id="modal-change-username">
+    <button class="close-modal-btn" id="close-modal-changeUsername">
+      <img class="img-close-modal" style="width: 15px;" src="./images/close.png">
+    </button>
+    <form id="form-change-username">
+      <h2>Change username</h2>
+
+      <label for="input-change-username">
+        Enter new username:
+        <input type="text" class="input-change-data" id="input-change-username"
+        required minlength="3" maxlength="64">
+      </label>
+
+      <button id="confirm-change-username" type="submit">Save</button>
+    </form>
+  </dialog>
+
+  <dialog class="modal-change-email" id="modal-change-email">
+    <button class="close-modal-btn" id="close-modal-changeEmail">
+      <img class="img-close-modal" style="width: 15px;" src="./images/close.png">
+    </button>
+    <form id="form-change-email">
+      <h2>Change email</h2>
+
+      <label for="input-change-email">
+        Enter new email:
+        <input type="text" class="input-change-data" id="input-change-email"
+        required minlength="3" maxlength="137">
+      </label>
+
+      <button id="confirm-change-email" type="submit">Save</button>
+    </form>
+  </dialog>
+
+  <dialog class="modal-change-password" id="modal-change-password">
+    <button class="close-modal-btn" id="close-modal-changePassword">
+      <img class="img-close-modal" style="width: 15px;" src="./images/close.png">
+    </button>
+    <form id="form-change-password">
+      <h2>Change password</h2>
+
+      <label for="current-password">
+        Enter current password:
+        <input type="password" class="input-change-data" id="current-password"
+        required minlength="8" maxlength="128">
+      </label>
+      <label for="input-change-password-1">
+        Enter new password:
+        <input type="password" class="input-change-data" id="input-change-password-1"
+        required minlength="8" maxlength="128">
+      </label>
+      <label for="input-change-password-2">
+        <input type="password" class="input-change-data" id="input-change-password-2"
+        required minlength="8" maxlength="128">
+      </label>
+
+      <button id="confirm-change-password"  type="submit">Save</button>
+    </form>
+  </dialog>
+
+  <dialog class="modal-delete-account" id="modal-delete-account">
+    <button class="close-modal-btn" id="close-modal-delete-account">
+      <img src="./images/close.png" style="width: 12px;">
+    </button>
+
+    <h2 class="modal-title">Delete Account</h2>
+    <p class="delete-warning-text">
+      This action is irreversible. All your data and messages will be permanently deleted.
+    </p>
+
+    <form id="form-delete-account">
+      <label for="delete-confirm-password">
+        To confirm, enter your current password:
+        <input type="password" id="delete-confirm-password" required>
+      </label>
+
+      <button type="submit" class="btn-danger">I understand, delete my account</button>
+    </form>
+  </dialog>
+
+  <main>
+    <section id="section-search-users">
+
+        <input type="text" id="input-search-users" minlength="3" maxlength="64"
+        placeholder="Search users">
+        <button id="search-user-btn">Search</button>
+
+      <div id="section-show-users"></div>
+    </section>
+
+  </main>
+
+  <script type="module" src="/scripts/script_profile.js"></script>
+</body>
+</html>

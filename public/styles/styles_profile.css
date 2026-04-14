@@ -1,0 +1,431 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f4f7f6;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Верхняя панель */
+header {
+  height: 70px;
+  background-color: white;
+  display: flex;
+  justify-content: center; /* Центрируем внутренний контейнер */
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 0 20px;
+}
+
+.header-content {
+  width: 60%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-info h1 {
+  font-size: 20px;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+#user-name {
+  color: #2ecc71;
+  font-weight: 700;
+}
+
+.nav-btns {
+  display: flex;
+  gap: 15px;
+}
+
+.btn {
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#settings-btn {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+#logout-btn {
+  background-color: #000;
+  color: white;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+/* Основная рабочая область */
+main {
+  width: 60%;
+  margin: 40px auto;
+  padding: 20px;
+  background: white;
+  min-height: 300px;
+  border-radius: 12px;
+  border: 1px dashed #ccc;
+}
+
+.modal-settings {
+  width: 40%;
+  border: 1px dashed #ccc;
+}
+
+.label-setting {
+  display: block;
+  /* margin: 10px;
+  padding: 10px; */
+}
+
+/* Улучшенная модалка Settings */
+.modal-settings {
+  width: 450px; /* Фиксированная ширина лучше для форм */
+  border: none;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  background: white;
+}
+
+/* Стилизация фона за модалкой */
+.modal-settings::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-settings h2 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  font-size: 24px;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.section-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.label-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+}
+
+/* Группа: инпут + кнопка рядом */
+.input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-settings input {
+  flex-grow: 1;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  color: #333;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+/* Кнопки внутри настроек */
+.setting-btn {
+  padding: 8px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.setting-btn:hover {
+  background-color: #e0e0e0;
+  border-color: #ccc;
+}
+
+/*  */
+
+/* --- Стили для модальных окон настроек (Profile Settings) --- */
+
+/* Общий контейнер для кнопок в настройках */
+.label-setting {
+  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Инпуты в настройках (readonly/disabled состояния) */
+input:disabled {
+  background-color: #eee;
+  color: #888;
+  border-color: #ccc;
+}
+
+/* Кнопки вызова модалок */
+.setting-btn {
+  height: 45px;
+  padding: 0 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.setting-btn:hover {
+  background: #f0f0f0;
+  border-color: #bbb;
+}
+
+/* Специфические стили для модалок настроек */
+.modal-change-data,
+.modal-change-password,
+.modal-delete-account {
+  width: 100%;
+  max-width: 450px;
+  border: none;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+}
+
+/* Заголовки в модалках */
+.modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+}
+
+/* Секция Delete Account (Danger Zone) */
+.modal-delete-account {
+  border-top: 5px solid #d93025; /* Визуальный маркер опасности */
+}
+
+.delete-warning-text {
+  color: #d93025;
+  font-size: 14px;
+  background: #fff5f5;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.btn-danger {
+  width: 100%;
+  height: 50px;
+  background-color: #d93025;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 10px;
+}
+
+.btn-danger:hover {
+  background-color: #b71c1c;
+}
+
+/* Крестик закрытия (универсальный для всех модалок) */
+.close-modal-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.4;
+}
+
+.close-modal-btn:hover {
+  opacity: 1;
+}
+/*  */
+/* Группировка всех модалок настроек для единого стиля */
+#modal-change-username,
+#modal-change-email,
+#modal-change-password,
+#modal-delete-account {
+  border: none;
+  border-radius: 16px;
+  padding: 35px;
+  width: 100%;
+  max-width: 400px; /* Совпадает с твоими формами Login/Register */
+  background: white;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  position: relative; /* Для позиционирования крестика */
+}
+
+/* Стилизация заголовков внутри этих модалок */
+#modal-change-username h2,
+#modal-change-email h2,
+#modal-change-password h2 {
+  margin-top: 0;
+  /* margin-bottom: 25px; */
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* Стилизация кнопок внутри этих модалок (используем твой зеленый) */
+#modal-change-username button[type="submit"],
+#modal-change-email button[type="submit"],
+#modal-change-password button[type="submit"] {
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 8px;
+  background-color: #2ecc71; /* Твой зеленый из .btn.logIn */
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 10px;
+}
+
+#modal-change-username button[type="submit"]:hover,
+#modal-change-email button[type="submit"]:hover,
+#modal-change-password button[type="submit"]:hover {
+  background-color: #27ae60;
+}
+
+/* Делаем инпуты во всех модалках изменения данных одинаковыми */
+#modal-change-username input,
+#modal-change-email input,
+#modal-change-password input,
+#modal-delete-account input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 45px;
+  /* margin: 8px 0 20px 0; */
+  padding: 0 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background: #f9f9f9;
+}
+
+/*  notify...  */
+.notify {
+  /* Сбрасываем системные стили диалога */
+  position: fixed;
+  margin: 0;
+  top: auto;
+  left: auto;
+  bottom: 20px;
+  right: 20px;
+
+  /* Твои стили */
+  min-width: 280px;
+  max-width: 400px;
+  padding: 15px 45px 15px 20px;
+  border-radius: 12px;
+  background: white;
+  border: none; /* Убираем черную рамку диалога */
+  border-left: 6px solid #2ecc71;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+
+  /* Анимация */
+  display: flex;
+  align-items: center;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+/* Убираем затемнение именно для этого диалога */
+.notify::backdrop {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Скрытое состояние (когда диалог не открыт, стили не важны, но для анимации оставим) */
+.notify:not([open]) {
+  display: none;
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notify-close-btn {
+  position: absolute;
+  /* !!! ИСПРАВЛЕНИЕ ТУТ !!! */
+  right: 8px;   /* Отступ от правого края */
+  top: 8px;     /* Отступ от верхнего края (вместо top: 50%) */
+  transform: none; /* Убираем translateY(-50%), он больше не нужен */
+
+  /* Твои старые стили кнопки */
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 5px; /* Площадь клика */
+  display: flex;
+  transition: opacity 0.2s;
+}
+
+.notify-close-btn:hover {
+  opacity: 1;
+}
+
+/* Стилизация текста */
+#notify-text {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  word-wrap: break-word;
+  color: #333;
+  /* Убедись, что текст не имеет лишних отступов сверху */
+  margin: 0;
+}
+/*  ...notify  */
+
+/* input search .. */
+#input-search-users {
+  width: 84%;
+  height: 30px;
+  font-size: 18px;
+  padding-left: 10px;
+}
+
+#search-user-btn {
+  width: 13%;
+  height: 30px;
+  background-color: #2ecc71;
+  color: white;
+  font-size: 18px;
+}
+
+#search-user-btn:hover {
+  background-color: #27ae60;
+  cursor: pointer;
+}
+/* ..input search */
