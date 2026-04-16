@@ -13,7 +13,8 @@ const validation = {
 
   // validateUsername
   isValidUsername: (username) => {
-    if (typeof username !== 'string') return { valid: false, error: 'Invalid type!' };
+    console.log("HELLO FROM VALIDATOR", username)
+    if (typeof username !== 'string') return { valid: false, error: 'Invalid type username!' };
     const value = username.trim();
     if (value.length < 3 || value.length > 64) {
       return { valid: false, error: 'Username short or long!' }
@@ -23,11 +24,9 @@ const validation = {
     return { valid: true, value };
   },
 
-  // isValidUsername: (username) => /^\w{3,64}$/.test(username.trim()),
-
   // validateEmail
   isValidEmail: (email) => {
-    if (typeof email !== "string") return { valid: false, error: "Invalid type!" };
+    if (typeof email !== 'string') return { valid: false, error: "Invalid type email!" };
     const value = email.trim().toLowerCase();
     if (value.length < 1 || value.length > 137) {
       return { valid: false, error: "Email empty or long!" }
@@ -39,7 +38,7 @@ const validation = {
 
   // validatePassword
   isValidPassword: (password) => {
-    if (typeof password !== 'string') return { valid: false, error: 'Invalid type!' };
+    if (typeof password !== 'string') return { valid: false, error: 'Invalid type password!' };
     const value = password;
     if (value.length < 8 || value.length > 128) {
       return { valid: false, error: "Password short or long!" };
@@ -56,6 +55,7 @@ const validation = {
     return { valid: true, value }
   },
 
+  // validateMessages
   isValidMessage: (message) => {
     const cleanMessage = message.trim();
     if (cleanMessage.length < 1 || cleanMessage.length > 2048) return false;

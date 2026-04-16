@@ -81,7 +81,7 @@ document.getElementById("form-change-username").addEventListener("submit", (e) =
   fetch("/change-username", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: username })
+    body: JSON.stringify({ username })
   })
     .then(res => {
       if (!res.ok) throw new Error("Update failed!");
@@ -147,23 +147,23 @@ document.getElementById("close-modal-changePassword").addEventListener("click", 
 document.getElementById("form-change-password").addEventListener("submit", (e) => {
   e.preventDefault();
   const currPassword = document.getElementById("current-password").value;
-  const password = document.getElementById("input-change-password-1").value;
-  const password_confirm = document.getElementById("input-change-password-2").value;
+  const newPassword1 = document.getElementById("input-change-password-1").value;
+  const newPassword2 = document.getElementById("input-change-password-2").value;
 
   if (!validation.isValidPassword(currPassword) ||
-      !validation.isValidPassword(password) ||
-      !validation.isValidPassword(password_confirm)) {
+      !validation.isValidPassword(newPassword1) ||
+      !validation.isValidPassword(newPassword2)) {
     return notify("Passwords incorrect!");
   }
 
-  if (password !== password_confirm) {
+  if (newPassword1 !== newPassword2) {
     return notify("The passwords do not match!");
   }
 
   fetch("/change-password", {
     method: "PUT",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ currPassword, password, password_confirm })
+    body: JSON.stringify({ currPassword, newPassword1, newPassword2 })
   })
     .then(async res => {
       const data = await res.json();
@@ -203,7 +203,7 @@ document.getElementById("form-delete-account").addEventListener("submit", (e) =>
   fetch("/delete-account", {
     method: "DELETE",
     headers: { "Content-Type": "application/json"},
-    body: JSON.stringify({password})
+    body: JSON.stringify({ password })
   })
     .then(async res => {
       const data = await res.json();

@@ -29,26 +29,26 @@ app.listen(PORT, () => {
 
 // register
 app.post("/register", async (req, res) => {
-  let {rawUsername, rawEmail, rawPassword} = req.body;
+  let {username, email, password} = req.body;
 
-  const usernameRes = validation.isValidUsername(rawUsername);
+  const usernameRes = validation.isValidUsername(username);
   if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error });
 
-  const emailRes = validation.isValidEmail(rawEmail);
+  const emailRes = validation.isValidEmail(email);
   if (!emailRes.valid) return res.status(400).json({ message: emailRes.error })
 
-  const passwordRes = validation.isValidPassword(rawPassword);
+  const passwordRes = validation.isValidPassword(password);
   if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error })
 
-  const username = usernameRes.value;
-  const email = emailRes.value;
-  const password = passwordRes.value;
+  const clearUsername = usernameRes.value;
+  const clearEmail = emailRes.value;
+  const clearPassword = passwordRes.value;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(clearPassword, 10);
 
   const sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?);"
 
-  db.run(sql, [username, email, hashedPassword], function(err) {
+  db.run(sql, [clearUsername, clearEmail, hashedPassword], function(err) {
     if (err) {
       console.error(err.message);
       return res.status(400).json({error: "User already exists or error"});
@@ -59,20 +59,20 @@ app.post("/register", async (req, res) => {
 
 // login
 app.post("/login", async (req, res) => {
-  let {rawEmail, rawPassword} = req.body;
+  let {email, password} = req.body;
 
-  const emailRes = validation.isValidEmail(rawEmail);
+  const emailRes = validation.isValidEmail(email);
   if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
 
-  const passwordRes = validation.isValidPassword(rawPassword);
+  const passwordRes = validation.isValidPassword(password);
   if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error });
 
-  const email = emailRes.value;
-  const password = passwordRes.value;
+  const clearEmail = emailRes.value;
+  const clearPassword = passwordRes.value;
 
   const sql = "SELECT * FROM users WHERE email = ?";
 
-  db.get(sql, [email], async (err, user) => {
+  db.get(sql, [clearEmail], async (err, user) => {
     if (err) {
       console.error(err.message);
       return res.status(500).json({error: "Database error"})
@@ -82,7 +82,7 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({error: "Invalid email or password!"});
     }
 
-    const isMatchPassword = await bcrypt.compare(password, user.password);
+    const isMatchPassword = await bcrypt.compare(clearPassword, user.password);
 
     if (!isMatchPassword) {
       return res.status(400).json({error: "Invalid email or password!"})
@@ -140,25 +140,25 @@ app.post("/logout", (req, res) => {
 
 // change username
 app.put("/change-username", checkAuth, (req, res) => {
-  let {rawUsername} = req.body;
+  let {username} = req.body;
 
-  const usernameRes = validation.isValidUsername(rawUsername);
+  const usernameRes = validation.isValidUsername(username);
   if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error });
-  const username = usernameRes.value;
+  const clearUsername = usernameRes.value;
 
   const sql = `UPDATE users SET username = ? WHERE id = ?`;
 
-  db.run(sql, [username, req.session.userID], function(err) {
+  db.run(sql, [clearUsername, req.session.userID], function(err) {
     if (err) {
       console.error(err.message);
       return res.status(500).json({error: "Database error"});
     }
 
-    req.session.username = username;
+    req.session.username = clearUsername;
 
     res.json({
       message: "Success!",
-      username: username
+      username: clearUsername
     })
 
   })
@@ -166,22 +166,22 @@ app.put("/change-username", checkAuth, (req, res) => {
 
 // change email
 app.put("/change-email", checkAuth, (req, res) => {
-  let {rawEmail} = req.body;
+  let { email } = req.body;
 
-  const emailRes = validation.isValidEmail(rawEmail);
+  const emailRes = validation.isValidEmail(email);
   if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
-  const email = emailRes.value;
+  const clearEmail = emailRes.value;
 
   const sql = `UPDATE users SET email = ? WHERE id = ? `;
 
-  db.run(sql, [email, req.session.userID], function(err) {
+  db.run(sql, [clearEmail, req.session.userID], function(err) {
     if (err) {
       return res.status(500).json({error: "Database error"});
     }
 
     res.json({
       message: "Success!",
-      email: email
+      email: clearEmail
     })
 
   })
@@ -189,21 +189,21 @@ app.put("/change-email", checkAuth, (req, res) => {
 
 // change password
 app.put("/change-password", checkAuth, async (req, res) => {
-  const {rawCurrPassword, rawPassword, rawPassword_confirm} = req.body;
+  const {currPassword, newPassword1, newPassword2} = req.body;
 
-  const currPasswordRes = validation.isValidPassword(rawCurrPassword);
-  const rawPasswordRes = validation.isValidPassword(rawPassword);
-  const rawPasswordConfirmRes = validation.isValidPassword(rawPassword_confirm);
+  const currPasswordRes = validation.isValidPassword(currPassword);
+  const newPassword1Res = validation.isValidPassword(newPassword1);
+  const newPassword2Res = validation.isValidPassword(newPassword2);
 
-  if (!currPasswordRes.valid || !rawPasswordRes.valid || !rawPasswordConfirmRes.valid) {
+  if (!currPasswordRes.valid || !newPassword1Res.valid || !newPassword2Res.valid) {
     return res.status(400).json({ error: "Invalid password format!" });
   }
 
-  const currPassword = currPasswordRes.value;
-  const newPassword_1 = rawPasswordRes.value;
-  const newPassword_2 = rawPasswordConfirmRes.value;
+  const clearCurrPassword = currPasswordRes.value;
+  const clearNewPassword1 = newPassword1Res.value;
+  const clearNewPassword2 = newPassword2Res.value;
 
-  if (newPassword_1 !== newPassword_2) {
+  if (clearNewPassword1 !== clearNewPassword2) {
     return res.status(400).json({
       error: "New passwords mismatch."
     });
@@ -214,11 +214,11 @@ app.put("/change-password", checkAuth, async (req, res) => {
   db.get(SQL_checkCurrPass, [req.session.userID], async (err, user) => {
     if (err || !user) return res.status(500).json({ error: "User not found!" })
 
-    const isCurrPassword = await bcrypt.compare(currPassword, user.password);
+    const isCurrPassword = await bcrypt.compare(clearCurrPassword, user.password);
 
     if (!isCurrPassword) return res.status(401).json({ error: "Current password incorrect" })
 
-    const hashedPassword = await bcrypt.hash(newPassword_1, 10);
+    const hashedPassword = await bcrypt.hash(clearNewPassword1, 10);
 
     const updatePassword = "UPDATE users SET password = ? WHERE id = ?";
 
@@ -231,11 +231,11 @@ app.put("/change-password", checkAuth, async (req, res) => {
 
 // delete account
 app.delete("/delete-account", checkAuth, async (req, res) => {
-  const {rawPassword} = req.body;
+  const { password } = req.body;
 
-  const passwordRes = validation.isValidPassword(rawPassword);
+  const passwordRes = validation.isValidPassword(password);
   if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error })
-  const password = passwordRes.value;
+  const clearPassword = passwordRes.value;
 
   const userID = req.session.userID;
 
@@ -244,9 +244,9 @@ app.delete("/delete-account", checkAuth, async (req, res) => {
   db.get(SQL_checkCurrPass, [userID], async (err, user) => {
     if (err || !user) return res.status(500).json({ error: "Database error!" });
 
-    const isPassword = await bcrypt.compare(password, user.password);
+    const isPassword = await bcrypt.compare(clearPassword, user.password);
 
-    if (!isPassword) return res.status(401).json({ error: "Password incorrect"});
+    if (!isPassword) return res.status(401).json({ error: "Password incorrect" });
 
     const SQL_deleteAccount = "DELETE FROM users WHERE id = ?";
 
@@ -267,15 +267,15 @@ app.delete("/delete-account", checkAuth, async (req, res) => {
 
 // search users
 app.post("/api/search-user", checkAuth, async (req, res) => {
-  const { rawUsername } = req.body;
+  const { username } = req.body;
 
-  const usernameRes = validation.isValidUsername(rawUsername);
+  const usernameRes = validation.isValidUsername(username);
   if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error })
-  const username = usernameRes.value;
+  const clearUsername = usernameRes.value;
 
   const sqlSearchUsers = "SELECT id, username FROM users WHERE username = ? AND id != ?";
 
-  db.get(sqlSearchUsers, [username, req.session.userID], async (err, user) => {
+  db.get(sqlSearchUsers, [clearUsername, req.session.userID], async (err, user) => {
     if (err) {
       console.error("Database error: ", err.message);
       return res.status(500).json({ error: "Database error" });

@@ -74,11 +74,7 @@ document.getElementById("form-register").addEventListener("submit", (e) => {
   fetch("/register", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      username: username,
-      email: email,
-      password: password
-    })
+    body: JSON.stringify({ username, email, password })
   })
     .then(res => res.json())
     .then(data => {
@@ -103,13 +99,10 @@ document.getElementById("form-logIn").addEventListener("submit", (e) => {
   fetch("/login", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      email: email,
-      password: password
-    })
+    body: JSON.stringify({ email, password })
   })
   .then(async res => {
-    const data = await(res.json())
+    const data = await res.json()
 
     if (!res.ok) {
       throw new Error(data.error || "Invalid email or password!");
