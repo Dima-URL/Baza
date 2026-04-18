@@ -39,6 +39,75 @@ function closeNotify() {
 
 document.getElementById('notify-close').addEventListener("click", closeNotify);
 
+// show messages
+function loadMessages(otherId) {
+  fetch(`/api/messages/${otherId}`)
+    .then(res => res.json())
+    .then(messages => {
+      const feed = document.getElementById('message-feed');
+      feed.innerHTML = '';
+      messages.forEach(msg => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message-bubble';
+        msgDiv.innerHTML = `
+          <div class="msg-content">${msg.content}</div>
+          <small class="msg-time">${new Date(msg.sent_at).toLocaleTimeString()}</small>
+        `
+        feed.appendChild(msgDiv);
+      });
+      feed.scrollTop = feed.scrollHeight;
+    })
+    .catch(err => console.error("Load error:", err));
+}
+
+// function setupChatArea
+function setupChatArea(receiverId, receiverName) {
+  const sectionDialog = document.getElementById('section-dialog');
+  sectionDialog.innerHTML = `
+    <div class="chat-container">
+      <h3>Chat with ${receiverName}</h3>
+      <div id="message-feed" style="height: 300px; overflow-y: auto; border: 1px solid #ccc;">
+      </div>
+      <form id="form-send-message">
+        <textarea id="message-for-user" placeholder="Type a message..."minlength="1" maxlength="2048" required></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  `;
+
+  loadMessages(receiverId);
+
+  // when form exists, do for it "submit"
+  document.getElementById('form-send-message').addEventListener('submit', (e) => {
+    e.preventDefault();
+    sendMessage(receiverId);
+  })
+}
+
+// func send message
+function sendMessage(receiverId) {
+  const rawContent = document.getElementById('message-for-user').value;
+  const contentRes = validation.isValidMessage(rawContent);
+  if (!contentRes.valid) return notify(contentRes.error);
+
+  fetch('/api/send-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ receiver_id: receiverId, content: contentRes.value })
+  })
+    .then(async res => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Failed!");
+      return data;
+    })
+    .then(data => {
+      notify(data.message);
+      document.getElementById('message-for-user').value = '';
+    })
+    .catch(err => notify(err.message));
+}
+
+
 // logout ..
 document.getElementById("logout-btn").addEventListener("click", () => {
   fetch("/logout", {method: "POST"})
@@ -239,12 +308,16 @@ document.getElementById("search-user-btn").addEventListener("click", () => {
       showBox.innerHTML = `
         <div>
           <span>Found: <strong>${data.username}</strong></span>
-          <button onclick="startChat(${data.id})">Message</button>
+          <button id="btn-open-chat">Message</button>
         </div>
       `
+
+      document.getElementById('btn-open-chat').addEventListener('click', () => {
+        setupChatArea(data.id, data.username);
+      })
     })
     .catch(err => {
-      notify(err.message, true);
+      notify(err.message);
       document.getElementById("section-show-users").innerText = "";
     })
 })

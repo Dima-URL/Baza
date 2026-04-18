@@ -295,9 +295,44 @@ app.post("/api/search-user", checkAuth, async (req, res) => {
 
 // send message
 app.post("/api/send-message", checkAuth, async (req, res) => {
-  const { message } = req.body;
+  const { receiver_id, content } = req.body;
+  const sender_id = req.session.userID;
 
-  if (!validation.isValidMessage(message)) {
+  const contentRes = validation.isValidMessage(content);
+  if (!contentRes.valid) return res.status(400).json({ message: contentRes.error });
+  const clearContent = contentRes.value;
 
-  }
+  const sqlSendMessage = `
+    INSERT INTO messages (sender_id, receiver_id, content)
+    VALUES (?, ?, ?)`;
+
+  db.run(sqlSendMessage, [sender_id, receiver_id, clearContent], function(err) {
+    if (err) {
+      console.error("Database error: ", err.message);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    res.json({ message: 'Message sent successfully!' })
+  })
+})
+
+// show messages
+app.get('/api/messages/:otherId', checkAuth, (req, res) => {
+  const myId = req.session.userID;
+  const otherId = req.params.otherId;
+
+  const sqlShowMessages = `
+    SELECT * FROM messages
+    WHERE (sender_id = ? AND receiver_id = ?)
+    OR (receiver_id = ? AND sender_id = ?)
+    ORDER BY sent_at ASC
+  `;
+
+  db.all(sqlShowMessages, [myId, otherId, otherId, myId], (err, rows) => {
+    if (err) {
+      console.error(err.message);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(rows);
+  })
 })

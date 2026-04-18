@@ -13,9 +13,12 @@ export const validation = {
   },
 
   isValidMessage: (message) => {
-    const cleanMessage = message.trim();
-    if (cleanMessage.length < 1 || cleanMessage.length > 2048) return false;
-    return true;
+    if (typeof message !== 'string') return { valid: false, error: 'Invalid type message!' };
+    const value = message.trim();
+    if (value.length < 1 || value.length > 2048) return {
+      valid: false, error: 'Message empty or too long!'
+    };
+    return { valid: true, value };
   }
 
 };

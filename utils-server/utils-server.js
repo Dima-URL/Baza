@@ -1,19 +1,19 @@
+const escapeHTML = (str) => {
+  const symbols = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;'
+  }
+  return str.replace(/[&<>"'/]/g, (s) => symbols[s]);
+}
+
 const validation = {
-  escapeHTML: (str) => {
-    const symbols = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-      '/': '&#x2F;'
-    }
-    return str.replace(/[&<>"'/]/g, (s) => symbols[s]);
-  },
 
   // validateUsername
   isValidUsername: (username) => {
-    console.log("HELLO FROM VALIDATOR", username)
     if (typeof username !== 'string') return { valid: false, error: 'Invalid type username!' };
     const value = username.trim();
     if (value.length < 3 || value.length > 64) {
@@ -57,9 +57,12 @@ const validation = {
 
   // validateMessages
   isValidMessage: (message) => {
-    const cleanMessage = message.trim();
-    if (cleanMessage.length < 1 || cleanMessage.length > 2048) return false;
-    return validation.escapeHTML(cleanMessage);
+    if (typeof message !== 'string') return { valid: false, error: 'Invalid type message!' };
+    const value = message.trim();
+    if (value.length < 1 || value.length > 2048) return {
+      valid: false, error: 'Message empty or too long!'
+    }
+    return { valid: true, value: escapeHTML(value) };
   }
 
 };
