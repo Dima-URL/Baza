@@ -54,6 +54,9 @@ function loadMessages(otherId) {
           <small class="msg-time">${new Date(msg.sent_at).toLocaleTimeString()}</small>
         `
         feed.appendChild(msgDiv);
+        // separate messages 
+        const isMine = msg.sender_id === window.currentUserId;
+        msgDiv.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
       });
       feed.scrollTop = feed.scrollHeight;
     })

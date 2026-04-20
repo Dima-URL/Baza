@@ -429,3 +429,9 @@ input:disabled {
   cursor: pointer;
 }
 /* ..input search */
+
+/* separate messages  */
+.message-bubble { max-width: 70%; padding: 8px; margin: 5px; border-radius: 10px; }
+.mine { align-self: flex-end; background-color: #dcf8c6; margin-left: auto; }
+.theirs { align-self: flex-start; background-color: #fff; border: 1px solid #ccc; }
+#message-feed { display: flex; flex-direction: column; }

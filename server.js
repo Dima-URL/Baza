@@ -324,7 +324,7 @@ app.get('/api/messages/:otherId', checkAuth, (req, res) => {
   const sqlShowMessages = `
     SELECT * FROM messages
     WHERE (sender_id = ? AND receiver_id = ?)
-    OR (receiver_id = ? AND sender_id = ?)
+    OR (sender_id = ? AND receiver_id = ?)
     ORDER BY sent_at ASC
   `;
 
