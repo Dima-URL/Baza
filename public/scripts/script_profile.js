@@ -1,5 +1,8 @@
 //import
 import { validation } from "./utils.js";
+const socket = io();
+let myId = null;
+let activeChatId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/profile")
@@ -9,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .then(data => {
       if (data.username) {
+        myId = data.id;
+        // console.log("My ID loaded:", myId);
+        socket.emit('join', myId);
         document.getElementById("user-name").innerText = data.username;
         document.getElementById("settings-username").value = data.username;
         document.getElementById("settings-email").value = data.email;
@@ -39,32 +45,48 @@ function closeNotify() {
 
 document.getElementById('notify-close').addEventListener("click", closeNotify);
 
+// socket.on('connect', () => {
+//   console.log('Connected to server! Socket ID:', socket.id);
+// })
+
+socket.on('new_message', (msg) => {
+  // console.log('MESSAGE RECEIVED VIA SOCKET:', msg);
+  if (activeChatId && (msg.sender_id === activeChatId || msg.sender_id === myId)) {
+    appendMessageToFeed(msg); // display chat
+  }
+})
+
+function appendMessageToFeed(msg) {
+  const feed = document.getElementById('message-feed');
+  if (!feed) return;
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message-bubble ${msg.sender_id === myId ? 'mine' : 'theirs'}`;
+  msgDiv.innerHTML = `
+    <div class="msg-content">${msg.content}</div>
+    <small>${new Date(msg.sent_at).toLocaleTimeString()}</small>
+  `;
+  feed.appendChild(msgDiv);
+  feed.scrollTop = feed.scrollHeight;
+}
+
 // show messages
 function loadMessages(otherId) {
   fetch(`/api/messages/${otherId}`)
     .then(res => res.json())
     .then(messages => {
       const feed = document.getElementById('message-feed');
+      if (!feed) return;
       feed.innerHTML = '';
-      messages.forEach(msg => {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message-bubble';
-        msgDiv.innerHTML = `
-          <div class="msg-content">${msg.content}</div>
-          <small class="msg-time">${new Date(msg.sent_at).toLocaleTimeString()}</small>
-        `
-        feed.appendChild(msgDiv);
-        // separate messages 
-        const isMine = msg.sender_id === window.currentUserId;
-        msgDiv.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
-      });
-      feed.scrollTop = feed.scrollHeight;
+      messages.forEach(msg => appendMessageToFeed(msg));
     })
     .catch(err => console.error("Load error:", err));
 }
 
 // function setupChatArea
 function setupChatArea(receiverId, receiverName) {
+  activeChatId = receiverId;
+
   const sectionDialog = document.getElementById('section-dialog');
   sectionDialog.innerHTML = `
     <div class="chat-container">
@@ -73,7 +95,7 @@ function setupChatArea(receiverId, receiverName) {
       </div>
       <form id="form-send-message">
         <textarea id="message-for-user" placeholder="Type a message..."minlength="1" maxlength="2048" required></textarea>
-        <button type="submit">Send</button>
+        <div class="div-send-message"><button type="submit" id="btn-send-message">Send</button></div>
       </form>
     </div>
   `;
@@ -104,7 +126,7 @@ function sendMessage(receiverId) {
       return data;
     })
     .then(data => {
-      notify(data.message);
+      // notify(data.message);
       document.getElementById('message-for-user').value = '';
     })
     .catch(err => notify(err.message));

@@ -8,6 +8,11 @@ const PORT = process.env.PORT || 3000;
 const path = require("path");
 const { validation } = require("./utils-server/utils-server");
 
+const { Server } = require('socket.io');
+const http = require('http');
+const server = http.createServer(app);
+const io = new Server(server);
+
 app.use(express.json());
 
 app.use(session({
@@ -22,10 +27,22 @@ app.use(session({
 
 app.use(express.static("./public"))
 
-app.listen(PORT, () => {
-  console.log(`[!] Server is running on http://localhost:${PORT}`);
-  console.log(`[!] WARNING: Unauthorized access is monitored.`);
-})
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+
+  socket.on('join', (userId) => {
+    if (!userId) {
+      console.log('Error: Attempt to join room with null ID');
+      return;
+    }
+    socket.join(`user_${userId}`);
+    console.log(`User ${userId} joined their private room`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log("User disconnected");
+  });
+});
 
 // register
 app.post("/register", async (req, res) => {
@@ -113,7 +130,7 @@ app.get("/profile", checkAuth, (req, res) => {
 
 // display username, email in settings
 app.get("/api/profile", checkAuth, (req, res) => {
-  const sql = "SELECT username, email FROM users WHERE id = ?";
+  const sql = "SELECT id, username, email FROM users WHERE id = ?";
 
   db.get(sql, [req.session.userID], (err, user) => {
     if (err || !user) {
@@ -121,6 +138,7 @@ app.get("/api/profile", checkAuth, (req, res) => {
     }
 
     res.json({
+      id: user.id,
       username: user.username,
       email: user.email
     })
@@ -312,6 +330,16 @@ app.post("/api/send-message", checkAuth, async (req, res) => {
       return res.status(500).json({ error: "Database error" });
     }
 
+    const newMessage = {
+      sender_id: sender_id,
+      receiver_id: receiver_id,
+      content: clearContent,
+      sent_at: new Date().toISOString()
+    };
+
+    io.to(`user_${receiver_id}`).emit('new_message', newMessage);
+    io.to(`user_${sender_id}`).emit('new_message', newMessage);
+
     res.json({ message: 'Message sent successfully!' })
   })
 })
@@ -335,4 +363,8 @@ app.get('/api/messages/:otherId', checkAuth, (req, res) => {
     }
     res.json(rows);
   })
+})
+
+server.listen(PORT, () => {
+  console.log(`[!] SERVER is running on http://localhost:${PORT}`);
 })

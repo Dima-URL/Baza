@@ -1,3 +1,4 @@
+
 body {
   margin: 0;
   padding: 0;
@@ -435,3 +436,26 @@ input:disabled {
 .mine { align-self: flex-end; background-color: #dcf8c6; margin-left: auto; }
 .theirs { align-self: flex-start; background-color: #fff; border: 1px solid #ccc; }
 #message-feed { display: flex; flex-direction: column; }
+
+/* message-for-user */
+#message-for-user {
+  width: 99%;
+  height: 60px;
+  margin: 10px 0px;
+  resize: none;
+  font-size: 16px;
+  padding-left: 5px;
+}
+
+.send-message {
+  width: 100%;
+  display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+#btn-send-message {
+  width: 100px;
+  height: 30px;
+}
+
