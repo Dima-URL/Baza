@@ -1,258 +1,243 @@
-/* Базовые сбросы и шрифты */
+:root {
+  --primary: #2ecc71;
+  --primary-dark: #27ae60;
+  --dark: #1a1a1a;
+  --text-gray: #666;
+  --bg: #f8fafc;
+  --white: #ffffff;
+}
+
 body {
   margin: 0;
-  padding: 0;
-  background-color: #f4f7f6; /* Мягкий светло-серый */
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #333;
+  background-color: var(--bg);
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--dark);
 }
 
 header {
-  height: 15vh;
-  width: 100%;
+  background: var(--white);
+  padding: 1rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.name-header {
-  font-size: 32px;
-  text-align: center;
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: -1px;
-  color: #1a1a1a;
-}
-
-.text-warning {
-  text-align: center;
-  color: #d93025;
-  font-size: 16px;
-  font-weight: 500;
-  margin-top: 8px;
+  justify-content: space-between;
+  align-items: center;
   padding: 0 20px;
 }
 
-main {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 85vh;
+.logo {
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -1px;
+  color: var(--dark);
 }
 
-/* Секция кнопок */
+.text-warning {
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+main {
+  height: calc(100vh - 70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero {
+  text-align: center;
+  max-width: 600px;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.05em;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-gray);
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
+}
+
+/* --- Кнопки --- */
 .section-btns {
   display: flex;
-  gap: 20px;
+  gap: 1rem;
+  justify-content: center;
 }
 
 .btn {
-  width: 220px;
-  height: 50px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
   font-weight: 600;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.btn.register {
-  background-color: #000;
-  color: white;
-}
-
-.btn.logIn {
-  background-color: #2ecc71; /* Приятный зеленый */
-  color: white;
-}
-
-.btn:hover {
+  border-radius: 8px;
   cursor: pointer;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  transition: all 0.2s;
+  border: none;
 }
 
-/* Модальные окна (Dialog) */
+.register {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(46, 204, 113, 0.3);
+}
+
+.register:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.logIn {
+  background: var(--white);
+  color: var(--dark);
+  border: 1px solid #e2e8f0;
+}
+
+.logIn:hover {
+  background: #f1f5f9;
+}
+
+/* --- Модальные окна (dialog) --- */
 dialog {
   border: none;
   border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  background: white;
-}
-
-.modal-register, .modal-logIn {
-  width: 100%;
-  max-width: 400px;
+  padding: 2.5rem;
+  width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px); /* Эффект размытия фона */
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
 }
 
-/* Формы */
 .title-form {
-  margin-bottom: 30px;
+  font-size: 1.8rem;
   font-weight: 700;
-  font-size: 24px;
+  margin-bottom: 1.5rem;
 }
 
 label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #666;
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-gray);
 }
 
 input {
-  display: block;
   width: 100%;
-  box-sizing: border-box; /* Важно: чтобы padding не раздувал ширину */
-  height: 45px;
-  margin: 8px 0 20px 0;
-  padding: 0 15px;
-  border: 1px solid #ddd;
+  padding: 0.75rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 16px;
-  background: #f9f9f9;
-  transition: border-color 0.2s;
+  box-sizing: border-box;
+  font-size: 1rem;
 }
 
 input:focus {
   outline: none;
-  border-color: #2ecc71;
-  background: white;
+  border-color: var(--primary);
+  ring: 2px solid var(--primary);
 }
 
-/* Поле с доменом @baza.xyz */
-.label-el-forms {
-  position: relative;
+/* --- 1. Кнопки внутри форм (Центрирование и стиль) --- */
+.div-btn-create-login {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 
-#enter-email {
-  width: 100%;
-  padding-right: 90px; /* Место под текст @baza.xyz */
-}
-
-.baza-xyz {
-  position: absolute;
-  right: 15px;
-  top: 38px;
-  font-size: 14px;
-  color: #aaa;
-}
-
-/* Кнопки в формах */
 .btn-create-account {
-  width: 100%;
-  height: 50px;
-  border: none;
-  border-radius: 8px;
-  background-color: #2ecc71;
+  padding: 0.8rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--primary);
   color: white;
-  font-size: 18px;
-  font-weight: 600;
-  margin-top: 10px;
+  border: none;
+  border-radius: 25px; /* Овальная кнопка выглядит современнее */
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
+}
+
+.btn-create-account:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(46, 204, 113, 0.3);
+}
+
+/* --- 2. Кнопка-крестик (Верхний правый угол) --- */
+dialog {
+  position: relative; /* Чтобы крестик позиционировался относительно окна */
+}
+
+#close-modal-register,
+#close-modal-logIn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: background 0.2s;
 }
 
-.btn-create-account:hover {
-  background-color: #27ae60;
-}
-
-/* Кнопка закрытия */
-#close-modal-register,
-#close-modal-logIn,
-.close-modal-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.2s;
-  padding: 10px;
-}
-
 #close-modal-register:hover,
-#close-modal-logIn:hover,
-.close-modal-btn {
-  opacity: 1;
+#close-modal-logIn:hover {
+  background: #e2e8f0;
 }
 
-/*  notify...  */
-.notify {
-  /* Сбрасываем системные стили диалога */
-  position: fixed;
-  margin: 0;
-  top: auto;
-  left: auto;
-  bottom: 20px;
-  right: 20px;
+.img-close-modal {
+  opacity: 0.6;
+}
 
-  /* Твои стили */
-  min-width: 280px;
-  max-width: 400px;
-  padding: 15px 45px 15px 20px;
-  border-radius: 12px;
-  background: white;
-  border: none; /* Убираем черную рамку диалога */
-  border-left: 6px solid #2ecc71;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-
-  /* Анимация */
+/* --- 3. Email Suffix (@baza.xyz в одну строку) --- */
+.input-group {
   display: flex;
   align-items: center;
-  transition: opacity 0.3s, transform 0.3s;
+  margin-bottom: 1.25rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
 }
 
-/* Убираем затемнение именно для этого диалога */
-.notify::backdrop {
-  background: transparent !important;
-  backdrop-filter: none !important;
+.input-group:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.1);
 }
 
-/* Скрытое состояние (когда диалог не открыт, стили не важны, но для анимации оставим) */
-.notify:not([open]) {
-  display: none;
-  opacity: 0;
-  transform: translateX(100%);
+.input-group input {
+  flex: 1;
+  border: none !important; /* Убираем рамку самого инпута */
+  margin-bottom: 0 !important; /* Убираем твой старый отступ */
+  padding: 0.75rem;
+  outline: none;
 }
 
-.notify-close-btn {
-  position: absolute;
-  /* !!! ИСПРАВЛЕНИЕ ТУТ !!! */
-  right: 8px;   /* Отступ от правого края */
-  top: 8px;     /* Отступ от верхнего края (вместо top: 50%) */
-  transform: none; /* Убираем translateY(-50%), он больше не нужен */
-
-  /* Твои старые стили кнопки */
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0.5;
-  padding: 5px; /* Площадь клика */
-  display: flex;
-  transition: opacity 0.2s;
+.input-suffix {
+  padding-right: 12px;
+  color: var(--text-gray);
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: transparent;
+  user-select: none;
 }
-
-.notify-close-btn:hover {
-  opacity: 1;
-}
-
-/* Стилизация текста */
-#notify-text {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.4;
-  word-wrap: break-word;
-  color: #333;
-  /* Убедись, что текст не имеет лишних отступов сверху */
-  margin: 0;
-}
-/*  ...notify  */

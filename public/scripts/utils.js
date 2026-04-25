@@ -20,5 +20,35 @@ export const validation = {
     };
     return { valid: true, value };
   }
+};
 
+export const ui = {
+  notify: (message, isError = false) => {
+    const toast = document.getElementById('notify-global');
+    const textElement = document.getElementById('notify-text');
+    const closeBtn = document.getElementById('notify-close');
+
+    if (!toast || !textElement) {
+      console.error("Notification elements not found in DOM");
+      return;
+    }
+
+    // Сброс состояния
+    if (toast.open) toast.close();
+
+    toast.dataset.type = isError ? 'error' : 'success';
+    textElement.innerText = message;
+
+    // Один обработчик на закрытие
+    if (closeBtn && !closeBtn.onclick) {
+      closeBtn.onclick = () => toast.close();
+    }
+
+    toast.showModal(); // Используем show(), чтобы не блокировать страницу (backdrop)
+
+    // Авто-закрытие через 5 секунд
+    setTimeout(() => {
+      if (toast.open) toast.close();
+    }, 5000);
+  }
 };

@@ -5,28 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Baza</title>
   <link rel="stylesheet" href="styles/styles_main.css">
+  <link rel="stylesheet" href="styles/common_styles.css">
   <link rel="icon" href="/images/favicon.png">
 </head>
 <body>
   <dialog id="notify-global" class="notify">
     <span id="notify-text"></span>
-    <button id="notify-close" class="notify-close-btn">
-      <img src="./images/close.png" style="width: 12px;">
+    <button id="notify-close" class="notify-close-btn" aria-label="Close">
+      <img src="./images/close.png" alt="x" style="width: 12px; height: 12px;">
     </button>
   </dialog>
 
   <header>
-    <p class="name-header">Baza</p>
-    <p class="text-warning">
-      ⚠️ WARNING: The network training ground for practicing hacking and security skills. ⚠️<br>
-      ⚠️ Entering real personal information is strictly prohibited and will not be protected. ⚠️
-    </p>
+    <div class="header-inner">
+      <div class="logo">BAZA</div>
+      <p class="text-warning">
+        Practice ground. No real data.
+      </p>
+    </div>
   </header>
 
   <main>
-    <section class="section-btns">
-      <button type="button" class="btn register">Register</button>
-      <button type="button" class="btn logIn">Log In</button>
+    <section class="hero">
+      <h1 class="hero-title">Secure Messaging Lab</h1>
+      <p class="hero-subtitle">The ultimate training environment for AppSec and Web Development.</p>
+      <div class="section-btns">
+        <button type="button" class="btn register">Create Account</button>
+        <button type="button" class="btn logIn">Sign In</button>
+      </div>
     </section>
   </main>
 
@@ -40,12 +46,11 @@
           placeholder="User1" value="" required minlength="3" maxlength="64">
         </label>
 
-        <label for="enter-email" class="label-el-forms">
-          Enter fictional email:
-          <input type="text" id="enter-email" name="text"
-          placeholder="User1" value="" required minlength="3" maxlength="128">
-          <p class="baza-xyz">@baza.xyz</p>
-        </label>
+        <label for="enter-email">Enter fictional email:</label>
+        <div class="input-group">
+          <input type="text" id="enter-email" name="email" placeholder="User1" required>
+          <span class="input-suffix">@baza.xyz</span>
+        </div>
 
         <label for="enter-password" class="label-el-forms">
           Enter password:

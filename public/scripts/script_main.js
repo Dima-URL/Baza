@@ -1,27 +1,3 @@
-
-// notify...
-function notify(message, isError = false) {
-  const toast = document.getElementById('notify-global');
-  const textElement = document.getElementById('notify-text');
-
-  // Если уже открыт — сначала закроем (чтобы сбросить состояние)
-  if (toast.open) toast.close();
-
-  toast.style.borderLeftColor = isError ? '#d93025' : '#2ecc71';
-  textElement.innerText = message;
-
-  // ВАЖНО: вызываем как модалку, чтобы пробиться наверх
-  toast.showModal();
-}
-
-function closeNotify() {
-  document.getElementById('notify-global').close();
-}
-
-document.getElementById('notify-close').addEventListener("click", closeNotify);
-// ...notify
-
-//   open modal sing
 // btn, modal - register
 const btnRegister = document.querySelector(".register");
 const modalRegister = document.getElementById("modal-register");
@@ -49,7 +25,7 @@ closeModalLogIn.addEventListener("click", () => {
 })
 
 // import modules
-import { validation } from './utils.js';
+import { validation, ui } from './utils.js';
 
 // register, send data
 document.getElementById("form-register").addEventListener("submit", (e) => {
@@ -60,15 +36,15 @@ document.getElementById("form-register").addEventListener("submit", (e) => {
   const password = document.getElementById("enter-password").value;
 
   if (!validation.isValidUsername(username)) {
-    return notify("Invalid username format (3-64 chars, letters/numbers/_ only)");
+    return ui.notify("Invalid username format (3-64 chars, letters/numbers/_ only)");
   }
 
   if (!validation.isValidEmail(email)) {
-    return notify("Invalid email. Must be prefix@baza.xyz");
+    return ui.notify("Invalid email. Must be prefix@baza.xyz");
   }
 
   if (!validation.isValidPassword(password)) {
-    return notify("Password must be 8+ chars and include letters, numbers, and symbols");
+    return ui.notify("Password must be 8+ chars and include letters, numbers, and symbols");
   }
 
   fetch("/register", {
@@ -79,7 +55,7 @@ document.getElementById("form-register").addEventListener("submit", (e) => {
     .then(res => res.json())
     .then(data => {
       // alert(data.message || data.error)
-      notify(data.message || data.error)
+      ui.notify(data.message || data.error)
       if (data.message) modalRegister.close();
     })
     .catch(error => console.error(`Fetch Error: `, error.message))
@@ -93,7 +69,7 @@ document.getElementById("form-logIn").addEventListener("submit", (e) => {
   const password = document.getElementById("logIn-password").value;
 
   if (!validation.isValidEmail(email) || !validation.isValidPassword(password)) {
-    return notify("Invalid email or password!");
+    return ui.notify("Invalid email or password!");
   }
 
   fetch("/login", {
@@ -115,7 +91,7 @@ document.getElementById("form-logIn").addEventListener("submit", (e) => {
     }
   })
   .catch(error => {
-    notify(error.message, true)
+    ui.notify(error.message)
     console.error("Login Error: ", error.message)
   })
 })

@@ -1,5 +1,5 @@
 //import
-import { validation } from "./utils.js";
+import { validation,ui } from "./utils.js";
 const socket = io();
 let myId = null;
 let activeChatId = null;
@@ -18,32 +18,11 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("user-name").innerText = data.username;
         document.getElementById("settings-username").value = data.username;
         document.getElementById("settings-email").value = data.email;
+
       }
     })
     .catch(err => console.error("Error: ", err))
 })
-
-
-// notify...
-function notify(message, isError = false) {
-  const toast = document.getElementById('notify-global');
-  const textElement = document.getElementById('notify-text');
-
-  // Если уже открыт — сначала закроем (чтобы сбросить состояние)
-  if (toast.open) toast.close();
-
-  toast.style.borderLeftColor = isError ? '#d93025' : '#2ecc71';
-  textElement.innerText = message;
-
-  // ВАЖНО: вызываем как модалку, чтобы пробиться наверх
-  toast.showModal();
-}
-
-function closeNotify() {
-  document.getElementById('notify-global').close();
-}
-
-document.getElementById('notify-close').addEventListener("click", closeNotify);
 
 // socket.on('connect', () => {
 //   console.log('Connected to server! Socket ID:', socket.id);
@@ -113,7 +92,7 @@ function setupChatArea(receiverId, receiverName) {
 function sendMessage(receiverId) {
   const rawContent = document.getElementById('message-for-user').value;
   const contentRes = validation.isValidMessage(rawContent);
-  if (!contentRes.valid) return notify(contentRes.error);
+  if (!contentRes.valid) return ui.notify(contentRes.error);
 
   fetch('/api/send-message', {
     method: 'POST',
@@ -129,7 +108,7 @@ function sendMessage(receiverId) {
       // notify(data.message);
       document.getElementById('message-for-user').value = '';
     })
-    .catch(err => notify(err.message));
+    .catch(err => ui.notify(err.message));
 }
 
 
@@ -169,7 +148,7 @@ document.getElementById("form-change-username").addEventListener("submit", (e) =
   let username = document.getElementById("input-change-username").value;
 
   if (!validation.isValidUsername(username)) {
-    return notify("Invalid username format (3-64 chars, letters/numbers/_ only)");
+    return ui.notify("Invalid username format (3-64 chars, letters/numbers/_ only)");
   }
 
   fetch("/change-username", {
@@ -183,7 +162,7 @@ document.getElementById("form-change-username").addEventListener("submit", (e) =
     })
     .then(data => {
       document.getElementById("user-name").innerText = data.username;
-      notify(`Username was updated! Your a new username is ${data.username}`);
+      ui.notify(`Username was updated! Your a new username is ${data.username}`);
       document.getElementById("modal-change-username").close();
       document.getElementById("modal-settings").close();
     })
@@ -205,7 +184,7 @@ document.getElementById("form-change-email").addEventListener("submit", (e) => {
   let email = document.getElementById("input-change-email").value;
 
   if (!validation.isValidEmail(email)) {
-    return notify("Invalid email. Must be prefix@baza.xyz");
+    return ui.notify("Invalid email. Must be prefix@baza.xyz");
   }
 
   fetch("/change-email", {
@@ -219,13 +198,13 @@ document.getElementById("form-change-email").addEventListener("submit", (e) => {
       return data;
     })
     .then(data => {
-      notify(`Email was updated! Your new email is ${data.email}`);
+      ui.notify(`Email was updated! Your new email is ${data.email}`);
       document.getElementById("modal-change-email").close();
       document.getElementById("modal-settings").close();
     })
     .catch(err => {
       console.error("Fetch error: ", err)
-      return notify(`Fetch error`, err.message)
+      return ui.notify(`Fetch error`, err.message)
     })
 })
 
@@ -247,11 +226,11 @@ document.getElementById("form-change-password").addEventListener("submit", (e) =
   if (!validation.isValidPassword(currPassword) ||
       !validation.isValidPassword(newPassword1) ||
       !validation.isValidPassword(newPassword2)) {
-    return notify("Passwords incorrect!");
+    return ui.notify("Passwords incorrect!");
   }
 
   if (newPassword1 !== newPassword2) {
-    return notify("The passwords do not match!");
+    return ui.notify("The passwords do not match!");
   }
 
   fetch("/change-password", {
@@ -265,7 +244,7 @@ document.getElementById("form-change-password").addEventListener("submit", (e) =
       return data;
     })
     .then(data => {
-      notify(`${data.message}! Password updated!`)
+      ui.notify(`${data.message}! Password updated!`)
       document.getElementById("modal-change-password").close();
       document.getElementById("modal-settings").close();
 
@@ -291,7 +270,7 @@ document.getElementById("form-delete-account").addEventListener("submit", (e) =>
   const password = document.getElementById("delete-confirm-password").value;
 
   if (!validation.isValidPassword(password)) {
-    return notify("Password incorect!");
+    return ui.notify("Password incorect!");
   }
 
   fetch("/delete-account", {
@@ -315,7 +294,7 @@ document.getElementById("search-user-btn").addEventListener("click", () => {
   const username = document.getElementById("input-search-users").value;
 
   if (!validation.isValidUsername(username)) {
-    return notify("Invalid username! Format (3-64 chars, letters/numbers/_ only)");
+    return ui.notify("Invalid username! Format (3-64 chars, letters/numbers/_ only)");
   }
 
   fetch("/api/search-user", {
@@ -342,7 +321,7 @@ document.getElementById("search-user-btn").addEventListener("click", () => {
       })
     })
     .catch(err => {
-      notify(err.message);
+      ui.notify(err.message);
       document.getElementById("section-show-users").innerText = "";
     })
 })
