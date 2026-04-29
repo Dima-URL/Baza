@@ -19,6 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("settings-username").value = data.username;
         document.getElementById("settings-email").value = data.email;
 
+        if (data.role === 'admin') {
+          const adminContainer = document.getElementById('admin-panel');
+          if (adminContainer) {
+            document.getElementById('admin-panel').innerHTML = `
+              <a href="/admin-panel">Admin Panel</a>
+            `
+          }
+        }
       }
     })
     .catch(err => console.error("Error: ", err))

@@ -432,6 +432,8 @@ input:disabled {
   background-color: #2ecc71;
   color: white;
   font-size: 18px;
+  border-radius: 8px;
+  border: 0;
 }
 
 #search-user-btn:hover {

@@ -10,6 +10,7 @@ const { validation } = require("./utils-server/utils-server");
 
 const { Server } = require('socket.io');
 const http = require('http');
+const { error } = require('console');
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -92,7 +93,7 @@ app.post("/login", async (req, res) => {
   db.get(sql, [clearEmail], async (err, user) => {
     if (err) {
       console.error(err.message);
-      return res.status(500).json({error: "Database error"})
+      return res.status(500).json({error: "Database error"});
     }
 
     if (!user) {
@@ -107,10 +108,11 @@ app.post("/login", async (req, res) => {
 
     req.session.userID = user.id;
     req.session.username = user.username;
+    req.session.role = user.role;
 
     res.json({
       message: "Welcome!",
-      username: user.username
+      username: user.username,
     })
 
   })
@@ -118,7 +120,17 @@ app.post("/login", async (req, res) => {
 
 function checkAuth(req, res, next) {
   if (!req.session.userID) {
-	  return res.status(401).json({error: "Unauthorized! Please log in."});
+	  return res.status(401).json({ error: "Unauthorized! Please log in." });
+  }
+  next();
+}
+
+function isAdmin(req, res, next) {
+  if (!req.session.userID) {
+    return res.status(401).json({ error: "Unauthorized! Please log in." });
+  }
+  if (req.session.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden! You do not have administrator privileges.' })
   }
   next();
 }
@@ -130,7 +142,7 @@ app.get("/profile", checkAuth, (req, res) => {
 
 // display username, email in settings
 app.get("/api/profile", checkAuth, (req, res) => {
-  const sql = "SELECT id, username, email FROM users WHERE id = ?";
+  const sql = "SELECT id, username, email, role FROM users WHERE id = ?";
 
   db.get(sql, [req.session.userID], (err, user) => {
     if (err || !user) {
@@ -140,7 +152,8 @@ app.get("/api/profile", checkAuth, (req, res) => {
     res.json({
       id: user.id,
       username: user.username,
-      email: user.email
+      email: user.email,
+      role: user.role
     })
   })
 })
@@ -363,6 +376,10 @@ app.get('/api/messages/:otherId', checkAuth, (req, res) => {
     }
     res.json(rows);
   })
+})
+
+app.get('/admin-panel', isAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
 })
 
 server.listen(PORT, () => {

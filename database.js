@@ -15,7 +15,8 @@ db.serialize(() => {
       username TEXT NOT NULL UNIQUE,
       email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      role TEXT CHECK(role IN ('user', 'admin')) DEFAULT 'user'
     );
   `);
 
@@ -31,7 +32,6 @@ db.serialize(() => {
       FOREIGN KEY (receiver_id) REFERENCES users(id)
     );
   `);
-
 });
 
 module.exports = db;
