@@ -99,14 +99,5 @@
     </dialog>
 
   <script type="module" src="./scripts/script_main.js"></script>
-  <script>
-    const userRole = localStorage.getItem('role');
-    if (userRole === 'admin') {
-      const link = document.createElement('a');
-      link.setAttribute('href', '/administrator-panel');
-      link.innerText = 'Admin Panel';
-      document.body.appendChild('link');
-    }
-  </script>
 </body>
 </html>

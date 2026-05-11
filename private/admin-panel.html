@@ -9,20 +9,17 @@
     </style>
 </head>
 <body>
-    <h1>Panel <span class="status-badge">ADMIN</span></h1>
-    <p>Welcome, <strong id="admin-name">...</strong>!</p>
-    <hr>
-    <p>Your access status has been confirmed by the server.</p>
-    <a href="/profile">Come back to Profile</a>
+  <h1>Panel <span class="status-badge">ADMIN</span></h1>
+  <p>Welcome, <strong id="admin-name">...</strong>!</p>
+  <hr>
+  <p>Your access status has been confirmed by the server.</p>
+  <a href="/profile">Come back to Profile</a>
+  <div>
+    <h3>Users</h3>
+    <div id="list-users"></div>
+  </div>
 
-    <script>
-        // Проверяем, что API действительно отдает роль админа для этой страницы
-        fetch("/api/profile")
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById("admin-name").innerText = data.username;
-            })
-            .catch(err => console.error("Error:", err));
-    </script>
+
+  <script type="module" src="/scripts/script_admin_panel.js"></script>
 </body>
 </html>

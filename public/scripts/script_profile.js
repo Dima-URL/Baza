@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .then(data => {
       if (data.username) {
         myId = data.id;
-        // console.log("My ID loaded:", myId);
+
         socket.emit('join', myId);
         document.getElementById("user-name").innerText = data.username;
         document.getElementById("settings-username").value = data.username;
@@ -206,7 +206,7 @@ document.getElementById("form-change-email").addEventListener("submit", (e) => {
       return data;
     })
     .then(data => {
-      ui.notify(`Email was updated! Your new email is ${data.email}`);
+      ui.notify(`Success! Your new email is ${data.email}`);
       document.getElementById("modal-change-email").close();
       document.getElementById("modal-settings").close();
     })

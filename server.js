@@ -26,7 +26,10 @@ app.use(session({
   }
 }))
 
-app.use(express.static("./public"))
+app.use(express.static("./public"));
+
+const adminRoute = require('./routes/admin_routes.js');
+app.use('/', adminRoute);
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -134,6 +137,8 @@ function isAdmin(req, res, next) {
   }
   next();
 }
+
+module.exports = { isAdmin };
 
 // open access for profile.html
 app.get("/profile", checkAuth, (req, res) => {
@@ -282,7 +287,7 @@ app.delete("/delete-account", checkAuth, async (req, res) => {
     const SQL_deleteAccount = "DELETE FROM users WHERE id = ?";
 
     db.run(SQL_deleteAccount, [userID], function(err) {
-      if (err){
+      if (err) {
         console.error("Database error: ", err.message);
         return res.status(500).json({ error: "Failed to delete from DB" });
       }
@@ -380,6 +385,21 @@ app.get('/api/messages/:otherId', checkAuth, (req, res) => {
 
 app.get('/admin-panel', isAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
+})
+
+app.get('/view-user', isAdmin, (req, res) => {
+  const username = req.query.username;
+  const sql = `SELECT id, username, email, role, created_at FROM users WHERE username = ?`;
+  db.get(sql, [username], (err, user) => {
+    if (err) {
+      console.error(error.message);
+      res.status(500).json({ error: 'Internal Server Error'});
+    }
+    if (!user) {
+      res.status(404).json({ error: 'User not found!'});
+    }
+    res.json(user)
+  })
 })
 
 server.listen(PORT, () => {
