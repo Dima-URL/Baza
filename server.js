@@ -14,6 +14,8 @@ const { error } = require('console');
 const server = http.createServer(app);
 const io = new Server(server);
 
+const { v4: uuidv4 } = require('uuid');
+
 app.use(express.json());
 
 app.use(session({
@@ -61,20 +63,25 @@ app.post("/register", async (req, res) => {
   const passwordRes = validation.isValidPassword(password);
   if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error })
 
+  const userId = uuidv4();
   const clearUsername = usernameRes.value;
   const clearEmail = emailRes.value;
   const clearPassword = passwordRes.value;
-
   const hashedPassword = await bcrypt.hash(clearPassword, 10);
 
-  const sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?);"
+  console.log(userId)
+  console.log(clearUsername)
+  console.log(clearEmail)
+  console.log(hashedPassword)
 
-  db.run(sql, [clearUsername, clearEmail, hashedPassword], function(err) {
+  const sql = "INSERT INTO users (id, username, email, password) VALUES (?, ?, ?, ?);"
+
+  db.run(sql, [userId, clearUsername, clearEmail, hashedPassword], function(err) {
     if (err) {
       console.error(err.message);
       return res.status(400).json({error: "User already exists or error"});
     }
-    res.json({message: "Success! User is created!", id: this.lastID})
+    res.json({message: "Success! User is created!", id: userId})
     })
 })
 
