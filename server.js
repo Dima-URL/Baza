@@ -16,6 +16,8 @@ const io = new Server(server);
 
 const { v4: uuidv4 } = require('uuid');
 
+const middleware = require('./middleware.js');
+
 app.use(express.json());
 
 app.use(session({
@@ -68,11 +70,6 @@ app.post("/register", async (req, res) => {
   const clearEmail = emailRes.value;
   const clearPassword = passwordRes.value;
   const hashedPassword = await bcrypt.hash(clearPassword, 10);
-
-  console.log(userId)
-  console.log(clearUsername)
-  console.log(clearEmail)
-  console.log(hashedPassword)
 
   const sql = "INSERT INTO users (id, username, email, password) VALUES (?, ?, ?, ?);"
 
@@ -128,32 +125,13 @@ app.post("/login", async (req, res) => {
   })
 })
 
-function checkAuth(req, res, next) {
-  if (!req.session.userID) {
-	  return res.status(401).json({ error: "Unauthorized! Please log in." });
-  }
-  next();
-}
-
-function isAdmin(req, res, next) {
-  if (!req.session.userID) {
-    return res.status(401).json({ error: "Unauthorized! Please log in." });
-  }
-  if (req.session.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden! You do not have administrator privileges.' })
-  }
-  next();
-}
-
-module.exports = { isAdmin };
-
 // open access for profile.html
-app.get("/profile", checkAuth, (req, res) => {
+app.get("/profile", middleware.checkAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "private", "profile.html"));
 })
 
 // display username, email in settings
-app.get("/api/profile", checkAuth, (req, res) => {
+app.get("/api/profile", middleware.checkAuth, (req, res) => {
   const sql = "SELECT id, username, email, role FROM users WHERE id = ?";
 
   db.get(sql, [req.session.userID], (err, user) => {
@@ -182,7 +160,7 @@ app.post("/logout", (req, res) => {
 })
 
 // change username
-app.put("/change-username", checkAuth, (req, res) => {
+app.put("/change-username", middleware.checkAuth, (req, res) => {
   let {username} = req.body;
 
   const usernameRes = validation.isValidUsername(username);
@@ -208,7 +186,7 @@ app.put("/change-username", checkAuth, (req, res) => {
 })
 
 // change email
-app.put("/change-email", checkAuth, (req, res) => {
+app.put("/change-email", middleware.checkAuth, (req, res) => {
   let { email } = req.body;
 
   const emailRes = validation.isValidEmail(email);
@@ -231,7 +209,7 @@ app.put("/change-email", checkAuth, (req, res) => {
 })
 
 // change password
-app.put("/change-password", checkAuth, async (req, res) => {
+app.put("/change-password", middleware.checkAuth, async (req, res) => {
   const {currPassword, newPassword1, newPassword2} = req.body;
 
   const currPasswordRes = validation.isValidPassword(currPassword);
@@ -273,7 +251,7 @@ app.put("/change-password", checkAuth, async (req, res) => {
 })
 
 // delete account
-app.delete("/delete-account", checkAuth, async (req, res) => {
+app.delete("/delete-account", middleware.checkAuth, async (req, res) => {
   const { password } = req.body;
 
   const passwordRes = validation.isValidPassword(password);
@@ -309,7 +287,7 @@ app.delete("/delete-account", checkAuth, async (req, res) => {
 })
 
 // search users
-app.post("/api/search-user", checkAuth, async (req, res) => {
+app.post("/api/search-user", middleware.checkAuth, async (req, res) => {
   const { username } = req.body;
 
   const usernameRes = validation.isValidUsername(username);
@@ -337,7 +315,7 @@ app.post("/api/search-user", checkAuth, async (req, res) => {
 })
 
 // send message
-app.post("/api/send-message", checkAuth, async (req, res) => {
+app.post("/api/send-message", middleware.checkAuth, async (req, res) => {
   const { receiver_id, content } = req.body;
   const sender_id = req.session.userID;
 
@@ -370,7 +348,7 @@ app.post("/api/send-message", checkAuth, async (req, res) => {
 })
 
 // show messages
-app.get('/api/messages/:otherId', checkAuth, (req, res) => {
+app.get('/api/messages/:otherId', middleware.checkAuth, (req, res) => {
   const myId = req.session.userID;
   const otherId = req.params.otherId;
 
@@ -390,11 +368,11 @@ app.get('/api/messages/:otherId', checkAuth, (req, res) => {
   })
 })
 
-app.get('/admin-panel', isAdmin, (req, res) => {
+app.get('/admin-panel', middleware.isAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
 })
 
-app.get('/view-user', isAdmin, (req, res) => {
+app.get('/view-user', middleware.isAdmin, (req, res) => {
   const username = req.query.username;
   const sql = `SELECT id, username, email, role, created_at FROM users WHERE username = ?`;
   db.get(sql, [username], (err, user) => {
@@ -402,10 +380,21 @@ app.get('/view-user', isAdmin, (req, res) => {
       console.error(error.message);
       res.status(500).json({ error: 'Internal Server Error'});
     }
-    if (!user) {
-      res.status(404).json({ error: 'User not found!'});
+    if (!user) res.status(404).json({ error: 'User not found!'});
+    res.json(user);
+  })
+})
+
+app.get('/api/user-details', middleware.canViewProfile,  (req, res) => {
+  const userId = req.query.id;
+  const sql = 'SELECT username, email, role FROM users WHERE id = ?';
+  db.get(sql, [userId], (err, user) => {
+    if (err) {
+      console.log(err.message);
+      return res.status(500).json({ error: 'Database error!' });
     }
-    res.json(user)
+    if (!user) return res.status(404).json({ error: 'User not found!' });
+    res.json(user);
   })
 })
 

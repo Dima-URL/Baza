@@ -44,7 +44,7 @@ export const ui = {
       closeBtn.onclick = () => toast.close();
     }
 
-    toast.showModal(); // Используем show(), чтобы не блокировать страницу (backdrop)
+    toast.showModal(); 
 
     // Авто-закрытие через 5 секунд
     setTimeout(() => {
