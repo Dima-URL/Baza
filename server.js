@@ -18,6 +18,9 @@ const { v4: uuidv4 } = require('uuid');
 
 const middleware = require('./middleware.js');
 
+const fs = require('fs');
+
+
 app.use(express.json());
 
 app.use(session({
@@ -131,21 +134,54 @@ app.get("/profile", middleware.checkAuth, (req, res) => {
 })
 
 // display username, email in settings
+// app.get("/api/profile", middleware.checkAuth, (req, res) => {
+//   // !!! VULNERABLE, AFTER TESTS => DELETE, MUST BE 'id, username, email, role' instead '*'
+//   const sql = "SELECT id, username, email, role FROM users WHERE id = ?";
+
+//   db.get(sql, [req.session.userID], (err, user) => {
+//     if (err || !user) {
+//       return res.status(500).json({error: "Database error"})
+//     }
+
+//     return res.json({
+//       id: user.id,
+//       username: user.username,
+//       email: user.email,
+//       role: user.role
+//     })
+//   })
+// })
+
+
 app.get("/api/profile", middleware.checkAuth, (req, res) => {
-  const sql = "SELECT id, username, email, role FROM users WHERE id = ?";
-
-  db.get(sql, [req.session.userID], (err, user) => {
-    if (err || !user) {
-      return res.status(500).json({error: "Database error"})
-    }
-
-    res.json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role
+  if (!req.query.id) {
+    const sql = "SELECT id, username, email, role FROM users WHERE id = ?";
+    db.get(sql, [req.session.userID], (err, user) => {
+      if (err || !user) {
+        return res.status(500).json({error: "Database error"})
+      }
+      return res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      })
     })
-  })
+  } else {
+    const id = req.query.id;
+    const sql = "SELECT id, username, email, role FROM users WHERE username = ?";
+    db.get(sql, [id], (err, user) => {
+      if (err || !user) {
+        return res.status(500).json({error: "Database error"});
+      }
+      return res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      })
+    })
+  }
 })
 
 // logout
@@ -372,29 +408,51 @@ app.get('/admin-panel', middleware.isAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
 })
 
-app.get('/view-user', middleware.isAdmin, (req, res) => {
-  const username = req.query.username;
-  const sql = `SELECT id, username, email, role, created_at FROM users WHERE username = ?`;
-  db.get(sql, [username], (err, user) => {
-    if (err) {
-      console.error(error.message);
-      res.status(500).json({ error: 'Internal Server Error'});
-    }
-    if (!user) res.status(404).json({ error: 'User not found!'});
-    res.json(user);
-  })
-})
+// app.get(`/api/user-details`, (req, res) => {
+//     const targetUsername = req.query.user;
+//     if (targetUsername !== req.session.username && req.session.role !== 'admin') {
+//       return res.redirect('/');
+//     }
+//     const sql = 'SELECT username, email, role FROM users WHERE username = ?';
+//     db.get(sql, [targetUsername], (err, user) => {
+//         if (err) {
+//           return res.status(500).json({ error: 'Database error!' });
+//         }
+//         if (!user) {
+//           return res.status(404).json({ error: 'User not found!' });
+//         }
+//         res.json(user);
+//     });
+// });
 
-app.get('/api/user-details', middleware.canViewProfile,  (req, res) => {
-  const userId = req.query.id;
-  const sql = 'SELECT username, email, role FROM users WHERE id = ?';
-  db.get(sql, [userId], (err, user) => {
+app.post('/get-transcript', (req, res) => {
+  const senderId = req.session.userID;
+  const { receiverId } = req.body;
+
+  const sql = `SELECT content FROM messages
+  WHERE sender_id = ? AND receiver_id = ?
+  OR sender_id = ? AND receiver_id = ?`;
+
+  db.all(sql, [senderId, receiverId, receiverId, senderId], (err, rows) => {
     if (err) {
-      console.log(err.message);
-      return res.status(500).json({ error: 'Database error!' });
+      console.error(err.message);
+      return res.status(500).json({ error: 'Database error' });
     }
-    if (!user) return res.status(404).json({ error: 'User not found!' });
-    res.json(user);
+    if (!rows || rows.length === 0) return res.status(404).json({ error: 'No messages found!' });
+    const chatContent = rows.map(row => row.content).join('\n');
+    const transcriptsName = uuidv4();
+    const pathFile = `./chats/${transcriptsName}.txt`;
+
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+
+    fs.writeFile(pathFile, chatContent, 'utf-8', (err) => {
+      if (err) return res.status(500).json({ error: 'Database error!' });
+      res.download(pathFile, `transcript-${transcriptsName}.txt`, (downloadErr) => {
+        if (downloadErr) console.log('Download error: ', downloadErr);
+        fs.unlink(pathFile, () => {});
+      })
+    })
+
   })
 })
 

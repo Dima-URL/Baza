@@ -4,6 +4,8 @@ const socket = io();
 let myId = null;
 let activeChatId = null;
 
+
+
 document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/profile")
     .then(res => {
@@ -84,6 +86,7 @@ function setupChatArea(receiverId, receiverName) {
         <textarea id="message-for-user" placeholder="Type a message..."minlength="1" maxlength="2048" required></textarea>
         <div class="div-send-message"><button type="submit" id="btn-send-message">Send</button></div>
       </form>
+      <div class="div-transcript"><button type="submit" id="btn-transcript">Transcript</button></div>
     </div>
   `;
 
@@ -93,6 +96,45 @@ function setupChatArea(receiverId, receiverName) {
   document.getElementById('form-send-message').addEventListener('submit', (e) => {
     e.preventDefault();
     sendMessage(receiverId);
+  })
+
+  document.getElementById('btn-transcript').addEventListener('click', () => {
+    let fileName = 'transcript.txt';
+
+    fetch('/get-transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiverId })
+    })
+      .then(async res => {
+        if (!res.ok) {
+          const ErrData = await res.json().catch(() => ({}));
+          throw new Error(ErrData.error || 'Download failed');
+        }
+        const desposition = res.headers.get('Content-Disposition');
+        if (desposition && desposition.includes('filename=')) {
+          const fileNameRegExp = /filename[^;=\n]*=((['"]).*?\2|[^;=\n]*)/;
+          const matches = fileNameRegExp.exec(desposition);
+          if (matches !== 0 && matches[1]) {
+            fileName = matches[1].replace(/['"]/g, '');
+          }
+        }
+        return res.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url); // Чистим память за blob-ссылкой
+      })
+      .catch(err => {
+        console.error(err);
+        ui.notify(err.message);
+      });
   })
 }
 
@@ -113,7 +155,6 @@ function sendMessage(receiverId) {
       return data;
     })
     .then(data => {
-      // notify(data.message);
       document.getElementById('message-for-user').value = '';
     })
     .catch(err => ui.notify(err.message));
