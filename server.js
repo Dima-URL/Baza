@@ -19,7 +19,7 @@ const { v4: uuidv4 } = require('uuid');
 const middleware = require('./middleware.js');
 
 const fs = require('fs');
-
+const crypto = require('crypto');
 
 app.use(express.json());
 
@@ -81,9 +81,44 @@ app.post("/register", async (req, res) => {
       console.error(err.message);
       return res.status(400).json({error: "User already exists or error"});
     }
-    res.json({message: "Success! User is created!", id: userId})
+    return res.json({message: "Success! User is created!", id: userId})
     })
 })
+
+// 2FA
+app.post('/check-code2fa', (req, res) => {
+  let { userCode } = req.body;
+
+
+  if (typeof userCode != 'string') {
+    return res.status(400).json({ error: 'Code incorrect or invalid format!' });
+  }
+  userCode = userCode.trim();
+  if (!/^\d{4}$/.test(userCode)) {
+    return res.status(400).json({ error: 'Code incorrect or invalid format!' });
+  }
+
+  if (req.session.correct2faCode !== userCode) {
+    return res.status(401).json({ error: 'Code incorrect!'});
+  }
+
+  const sql = 'SELECT id, username, role FROM users WHERE id = ?';
+  db.get(sql, [req.session.tempUserID], (err, user) => {
+    if (err) {
+      console.log(err.error);
+      return res.status(500).json('Database error: ', err.error);
+    }
+      req.session.userID = req.session.tempUserID;
+      req.session.username = user.username;
+      req.session.role = user.role;
+
+      delete req.session.tempUserID;
+      delete req.session.correct2faCode;
+
+      return res.json({ message: "Welcome!", user: user.username });
+  })
+})
+
 
 // login
 app.post("/login", async (req, res) => {
@@ -116,16 +151,19 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({error: "Invalid email or password!"})
     }
 
-    req.session.userID = user.id;
-    req.session.username = user.username;
-    req.session.role = user.role;
+    const generatedCode = String(crypto.randomInt(0, 10000)).padStart(4, '0');
+    console.log(generatedCode);
 
-    res.json({
-      message: "Welcome!",
-      username: user.username,
-    })
+    req.session.correct2faCode = generatedCode;
+    req.session.tempUserID = user.id;
 
+    return res.json({ message: "MFA_REQUIRED" });
   })
+})
+
+app.get('/login-page', (req, res) => {
+  // if (!req.session.userID) return;
+  return res.sendFile(path.join(__dirname, 'private', 'login.html'));
 })
 
 // open access for profile.html
@@ -213,7 +251,7 @@ app.put("/change-username", middleware.checkAuth, (req, res) => {
 
     req.session.username = clearUsername;
 
-    res.json({
+    return res.json({
       message: "Success!",
       username: clearUsername
     })
@@ -236,7 +274,7 @@ app.put("/change-email", middleware.checkAuth, (req, res) => {
       return res.status(500).json({error: "Database error"});
     }
 
-    res.json({
+    return res.json({
       message: "Success!",
       email: clearEmail
     })
@@ -281,7 +319,7 @@ app.put("/change-password", middleware.checkAuth, async (req, res) => {
 
     db.run(updatePassword, [hashedPassword, req.session.userID], (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      res.json({ message: "Password updated successfully!" })
+      return res.json({ message: "Password updated successfully!" })
     })
   })
 })
@@ -316,7 +354,7 @@ app.delete("/delete-account", middleware.checkAuth, async (req, res) => {
       req.session.destroy((err) => {
         if (err) return res.status(500).json({ error: "Session cleanup failed." });
         res.clearCookie("connect.sid");
-        res.json({ message: "Account permanently deleted" })
+        return res.json({ message: "Account permanently deleted" })
       })
     })
   })
@@ -342,7 +380,7 @@ app.post("/api/search-user", middleware.checkAuth, async (req, res) => {
       return res.status(404).json({ error: "User not found!" });
     }
 
-    res.json({
+    return res.json({
       id: user.id,
       username: user.username
     })
@@ -379,7 +417,7 @@ app.post("/api/send-message", middleware.checkAuth, async (req, res) => {
     io.to(`user_${receiver_id}`).emit('new_message', newMessage);
     io.to(`user_${sender_id}`).emit('new_message', newMessage);
 
-    res.json({ message: 'Message sent successfully!' })
+    return res.json({ message: 'Message sent successfully!' })
   })
 })
 
@@ -405,7 +443,7 @@ app.get('/api/messages/:otherId', middleware.checkAuth, (req, res) => {
 })
 
 app.get('/admin-panel', middleware.isAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
+  return res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
 })
 
 // app.get(`/api/user-details`, (req, res) => {
@@ -452,7 +490,6 @@ app.post('/get-transcript', (req, res) => {
         fs.unlink(pathFile, () => {});
       })
     })
-
   })
 })
 

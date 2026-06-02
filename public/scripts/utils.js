@@ -44,7 +44,7 @@ export const ui = {
       closeBtn.onclick = () => toast.close();
     }
 
-    toast.showModal(); 
+    toast.showModal();
 
     // Авто-закрытие через 5 секунд
     setTimeout(() => {

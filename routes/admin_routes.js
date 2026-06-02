@@ -31,7 +31,7 @@ router.delete('/api/delete-user', isAdmin, (req, res) => {
       console.error('Database error: ', err.message);
       return res.status(500).json({ error: 'Failed to delete from DB' });
     }
-    res.json({ message: `User ${username} deleted.` })
+    return res.json({ message: `User ${username} deleted.` })
   })
 })
 

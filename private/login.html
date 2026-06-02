@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+</head>
+<body>
+  <form id="form">
+    <input type="text" id="input-code" required min="4" max="4">
+    <button type="submit" id="btn-login">Login</button>
+  </form>
+
+  <script>
+    document.querySelector('#form').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const userCode = document.querySelector('#input-code').value;
+      fetch('/check-code2fa', {
+        method: 'POST',
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ userCode })
+      })
+        .then(async res => {
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || "Invalid email or password!");
+          }
+          return data;
+        })
+        .then(data => {
+          if (data.message) {
+            window.location.href = "/profile";
+          }
+        })
+    })
+  </script>
+</body>
+</html>

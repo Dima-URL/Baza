@@ -100,7 +100,6 @@ function setupChatArea(receiverId, receiverName) {
 
   document.getElementById('btn-transcript').addEventListener('click', () => {
     let fileName = 'transcript.txt';
-
     fetch('/get-transcript', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -87,7 +87,7 @@ document.getElementById("form-logIn").addEventListener("submit", (e) => {
   })
   .then(data => {
     if (data.message) {
-      window.location.href = "/profile";
+      window.location.href = "/login-page";
     }
   })
   .catch(error => {
