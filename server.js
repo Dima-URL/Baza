@@ -14,7 +14,7 @@ const { error } = require('console');
 const server = http.createServer(app);
 const io = new Server(server);
 
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4, validate } = require('uuid');
 
 const middleware = require('./middleware.js');
 
@@ -89,11 +89,12 @@ app.post("/register", async (req, res) => {
 app.post('/check-code2fa', (req, res) => {
   let { userCode } = req.body;
 
-
   if (typeof userCode != 'string') {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
+
   userCode = userCode.trim();
+
   if (!/^\d{4}$/.test(userCode)) {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
@@ -491,6 +492,66 @@ app.post('/get-transcript', (req, res) => {
       })
     })
   })
+})
+
+app.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const emailRes = validation.isValidEmail(email);
+  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
+
+  const sql = `SELECT id, email FROM users WHERE email = ?`
+
+  db.get(sql, [email], (err, user) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (!user) {
+      return res.json({ message: "If this email exists, a reset link has been generated." });
+    }
+
+    const generatedToken = crypto.randomBytes(32).toString('hex');
+
+    const user_id = user.id;
+    const hashedToken = crypto.createHash('sha256').update(generatedToken).digest('hex');
+    const expires_at = Date.now() + 15 * 60 * 1000;
+
+    const insertSql = `INSERT INTO password_resets (user_id, hashedToken, expires_at)
+    VALUES (?, ?, ?)`
+
+    db.run(sql, [user_id, hashedToken, expires_at], (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      return res.json({
+        message: `Link for reset password`,
+        link: `/change-password.html?token=${generatedToken}`
+      })
+
+    })
+  })
+})
+
+app.put('/reset-password', async (req, res) => {
+  const { password_1, password_2 } = req.body;
+  const newPassword1Res = validation.isValidPassword(password_1);
+  const newPassword2Res = validation.isValidPassword(password_2);
+
+  if (!newPassword1Res.valid || !newPassword2Res.valid) {
+    return res.status(400).json({ error: "Invalid password format!" });
+  }
+
+  const clearPassword1 = newPassword1Res.value;
+  const clearPassword2 = newPassword2Res.value;
+
+  if (clearPassword1 !== clearPassword2) {
+    return res.status(400).json({ error: "New passwords mismatch." });
+  }
+
+
 })
 
 server.listen(PORT, () => {
