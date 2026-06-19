@@ -517,10 +517,10 @@ app.post('/forgot-password', async (req, res) => {
     const hashedToken = crypto.createHash('sha256').update(generatedToken).digest('hex');
     const expires_at = Date.now() + 15 * 60 * 1000;
 
-    const insertSql = `INSERT INTO password_resets (user_id, hashedToken, expires_at)
+    const insertSql = `INSERT INTO password_resets (user_id, token, expires_at)
     VALUES (?, ?, ?)`
 
-    db.run(sql, [user_id, hashedToken, expires_at], (err) => {
+    db.run(insertSql, [user_id, hashedToken, expires_at], (err) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: 'Database error' });
@@ -528,7 +528,7 @@ app.post('/forgot-password', async (req, res) => {
 
       return res.json({
         message: `Link for reset password`,
-        link: `/change-password.html?token=${generatedToken}`
+        link: `/reset-password.html?token=${generatedToken}`
       })
 
     })
@@ -536,7 +536,9 @@ app.post('/forgot-password', async (req, res) => {
 })
 
 app.put('/reset-password', async (req, res) => {
-  const { password_1, password_2 } = req.body;
+  const { password_1, password_2, token } = req.body;
+
+  if (!token) return res.status(400).json({ error: 'Token is missing' });
   const newPassword1Res = validation.isValidPassword(password_1);
   const newPassword2Res = validation.isValidPassword(password_2);
 
@@ -551,7 +553,47 @@ app.put('/reset-password', async (req, res) => {
     return res.status(400).json({ error: "New passwords mismatch." });
   }
 
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const now = Date.now();
 
+  const checkTokenSql = `
+  SELECT user_id FROM password_resets
+  WHERE token = ? AND expires_at > ? AND used = 0
+  `
+
+  db.get(checkTokenSql, [hashedToken, now], async (err, row) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Database error." });
+    }
+
+    if (!row) return res.status(400).json({ error: 'Invalid or expired token.' })
+
+    const userId = row.user_id;
+
+    try {
+      const encryptedPassword = await bcrypt.hash(clearPassword1, 10);
+      const updatePassword = `UPDATE users SET password = ? WHERE id = ?`;
+
+      db.run(updatePassword, [encryptedPassword, userId], (updateErr) => {
+        if (updateErr) {
+          console.error(updateErr);
+          return res.status(500).json({ error: 'Failed to update password.' });
+        }
+
+        const invalitadeTokenSql = `UPDATE password_resets SET used = 1 WHERE token = ?`;
+        db.run(invalitadeTokenSql, [hashedToken], (tokenErr) => {
+          if (tokenErr) console.error('Warning: failed to invalitade token', tokenErr);
+          
+          console.log('Password successfully reset. You can log in now.')
+          return res.json({ message: 'Password successfully reset. You can log in now.' })
+        })
+      })
+    } catch (bcryptErr) {
+      console.log(bcryptErr);
+      return res.status(500).json({ error: 'Hashing error.' })
+    }
+  })
 })
 
 server.listen(PORT, () => {
