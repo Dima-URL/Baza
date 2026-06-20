@@ -14,7 +14,7 @@ const { error } = require('console');
 const server = http.createServer(app);
 const io = new Server(server);
 
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4, validate } = require('uuid');
 
 const middleware = require('./middleware.js');
 
@@ -89,11 +89,12 @@ app.post("/register", async (req, res) => {
 app.post('/check-code2fa', (req, res) => {
   let { userCode } = req.body;
 
-
   if (typeof userCode != 'string') {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
+
   userCode = userCode.trim();
+
   if (!/^\d{4}$/.test(userCode)) {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
@@ -490,6 +491,108 @@ app.post('/get-transcript', (req, res) => {
         fs.unlink(pathFile, () => {});
       })
     })
+  })
+})
+
+app.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const emailRes = validation.isValidEmail(email);
+  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
+
+  const sql = `SELECT id, email FROM users WHERE email = ?`
+
+  db.get(sql, [email], (err, user) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (!user) {
+      return res.json({ message: "If this email exists, a reset link has been generated." });
+    }
+
+    const generatedToken = crypto.randomBytes(32).toString('hex');
+
+    const user_id = user.id;
+    const hashedToken = crypto.createHash('sha256').update(generatedToken).digest('hex');
+    const expires_at = Date.now() + 15 * 60 * 1000;
+
+    const insertSql = `INSERT INTO password_resets (user_id, token, expires_at)
+    VALUES (?, ?, ?)`
+
+    db.run(insertSql, [user_id, hashedToken, expires_at], (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      return res.json({
+        message: `Link for reset password`,
+        link: `/reset-password.html?token=${generatedToken}`
+      })
+
+    })
+  })
+})
+
+app.put('/reset-password', async (req, res) => {
+  const { password_1, password_2, token } = req.body;
+
+  if (!token) return res.status(400).json({ error: 'Token is missing' });
+  const newPassword1Res = validation.isValidPassword(password_1);
+  const newPassword2Res = validation.isValidPassword(password_2);
+
+  if (!newPassword1Res.valid || !newPassword2Res.valid) {
+    return res.status(400).json({ error: "Invalid password format!" });
+  }
+
+  const clearPassword1 = newPassword1Res.value;
+  const clearPassword2 = newPassword2Res.value;
+
+  if (clearPassword1 !== clearPassword2) {
+    return res.status(400).json({ error: "New passwords mismatch." });
+  }
+
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const now = Date.now();
+
+  const checkTokenSql = `
+  SELECT user_id FROM password_resets
+  WHERE token = ? AND expires_at > ? AND used = 0
+  `
+
+  db.get(checkTokenSql, [hashedToken, now], async (err, row) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Database error." });
+    }
+
+    if (!row) return res.status(400).json({ error: 'Invalid or expired token.' })
+
+    const userId = row.user_id;
+
+    try {
+      const encryptedPassword = await bcrypt.hash(clearPassword1, 10);
+      const updatePassword = `UPDATE users SET password = ? WHERE id = ?`;
+
+      db.run(updatePassword, [encryptedPassword, userId], (updateErr) => {
+        if (updateErr) {
+          console.error(updateErr);
+          return res.status(500).json({ error: 'Failed to update password.' });
+        }
+
+        const invalitadeTokenSql = `UPDATE password_resets SET used = 1 WHERE token = ?`;
+        db.run(invalitadeTokenSql, [hashedToken], (tokenErr) => {
+          if (tokenErr) console.error('Warning: failed to invalitade token', tokenErr);
+          
+          console.log('Password successfully reset. You can log in now.')
+          return res.json({ message: 'Password successfully reset. You can log in now.' })
+        })
+      })
+    } catch (bcryptErr) {
+      console.log(bcryptErr);
+      return res.status(500).json({ error: 'Hashing error.' })
+    }
   })
 })
 
