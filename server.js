@@ -511,26 +511,38 @@ app.post('/forgot-password', async (req, res) => {
       return res.json({ message: "If this email exists, a reset link has been generated." });
     }
 
-    const generatedToken = crypto.randomBytes(32).toString('hex');
-
     const user_id = user.id;
-    const hashedToken = crypto.createHash('sha256').update(generatedToken).digest('hex');
-    const expires_at = Date.now() + 15 * 60 * 1000;
 
-    const insertSql = `INSERT INTO password_resets (user_id, token, expires_at)
-    VALUES (?, ?, ?)`
-
-    db.run(insertSql, [user_id, hashedToken, expires_at], (err) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: 'Database error' });
+    const invalidateOldTokensSql = `
+    UPDATE password_resets
+    SET used = 1
+    WHERE user_id = ? AND used = 0
+    `;
+    db.run(invalidateOldTokensSql, [user_id], (clearErr) => {
+      if (clearErr) {
+        console.error('Failed invalidate token: ', clearErr);
+        return res.status(500).json({ error: 'Failed invalidate token!' })
       }
 
-      return res.json({
-        message: `Link for reset password`,
-        link: `/reset-password.html?token=${generatedToken}`
-      })
+      const generatedToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(generatedToken).digest('hex');
+      const expires_at = Date.now() + 15 * 60 * 1000;
 
+      const insertSql = `
+      INSERT INTO password_resets (user_id, token, expires_at)
+      VALUES (?, ?, ?)
+      `;
+      db.run(insertSql, [user_id, hashedToken, expires_at], (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        return res.json({
+          message: `Link for reset password`,
+          link: `/reset-password.html?token=${generatedToken}`
+        })
+      })
     })
   })
 })
@@ -584,7 +596,7 @@ app.put('/reset-password', async (req, res) => {
         const invalitadeTokenSql = `UPDATE password_resets SET used = 1 WHERE token = ?`;
         db.run(invalitadeTokenSql, [hashedToken], (tokenErr) => {
           if (tokenErr) console.error('Warning: failed to invalitade token', tokenErr);
-          
+
           console.log('Password successfully reset. You can log in now.')
           return res.json({ message: 'Password successfully reset. You can log in now.' })
         })
