@@ -447,23 +447,6 @@ app.get('/admin-panel', middleware.isAdmin, (req, res) => {
   return res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
 })
 
-// app.get(`/api/user-details`, (req, res) => {
-//     const targetUsername = req.query.user;
-//     if (targetUsername !== req.session.username && req.session.role !== 'admin') {
-//       return res.redirect('/');
-//     }
-//     const sql = 'SELECT username, email, role FROM users WHERE username = ?';
-//     db.get(sql, [targetUsername], (err, user) => {
-//         if (err) {
-//           return res.status(500).json({ error: 'Database error!' });
-//         }
-//         if (!user) {
-//           return res.status(404).json({ error: 'User not found!' });
-//         }
-//         res.json(user);
-//     });
-// });
-
 app.post('/get-transcript', (req, res) => {
   const senderId = req.session.userID;
   const { receiverId } = req.body;
@@ -515,7 +498,7 @@ app.post('/forgot-password', async (req, res) => {
 
     const invalidateOldTokensSql = `
     UPDATE password_resets
-    SET used = 1
+    SET used = 2
     WHERE user_id = ? AND used = 0
     `;
     db.run(invalidateOldTokensSql, [user_id], (clearErr) => {
