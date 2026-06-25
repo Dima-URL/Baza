@@ -1,11 +1,11 @@
 require('dotenv').config();
+const path = require('path');
 const express = require("express");
 const app = express();
 const session = require("express-session");
 const db = require("./database");
 const bcrypt = require("bcryptjs");
 const PORT = process.env.PORT || 3000;
-const path = require("path");
 const { validation } = require("./utils-server/utils-server");
 
 const { Server } = require('socket.io');
@@ -25,17 +25,19 @@ app.use(express.json());
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   cookie: {
     secure: false,
-    maxAge: 86400000
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
   }
-}))
+}));
 
 app.use(express.static("./public"));
 
 const adminRoute = require('./routes/admin_routes.js');
+const { type } = require('os');
 app.use('/', adminRoute);
 
 io.on('connection', (socket) => {
@@ -120,7 +122,6 @@ app.post('/check-code2fa', (req, res) => {
   })
 })
 
-
 // login
 app.post("/login", async (req, res) => {
   let {email, password} = req.body;
@@ -163,7 +164,6 @@ app.post("/login", async (req, res) => {
 })
 
 app.get('/login-page', (req, res) => {
-  // if (!req.session.userID) return;
   return res.sendFile(path.join(__dirname, 'private', 'login.html'));
 })
 
@@ -172,29 +172,9 @@ app.get("/profile", middleware.checkAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "private", "profile.html"));
 })
 
-// display username, email in settings
-// app.get("/api/profile", middleware.checkAuth, (req, res) => {
-//   // !!! VULNERABLE, AFTER TESTS => DELETE, MUST BE 'id, username, email, role' instead '*'
-//   const sql = "SELECT id, username, email, role FROM users WHERE id = ?";
-
-//   db.get(sql, [req.session.userID], (err, user) => {
-//     if (err || !user) {
-//       return res.status(500).json({error: "Database error"})
-//     }
-
-//     return res.json({
-//       id: user.id,
-//       username: user.username,
-//       email: user.email,
-//       role: user.role
-//     })
-//   })
-// })
-
-
 app.get("/api/profile", middleware.checkAuth, (req, res) => {
   if (!req.query.id) {
-    const sql = "SELECT id, username, email, role FROM users WHERE id = ?";
+    const sql = "SELECT id, username, email, role, bio FROM users WHERE id = ?";
     db.get(sql, [req.session.userID], (err, user) => {
       if (err || !user) {
         return res.status(500).json({error: "Database error"})
@@ -203,7 +183,8 @@ app.get("/api/profile", middleware.checkAuth, (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
+        bio: user.bio
       })
     })
   } else {
@@ -588,6 +569,27 @@ app.put('/reset-password', async (req, res) => {
       console.log(bcryptErr);
       return res.status(500).json({ error: 'Hashing error.' })
     }
+  })
+})
+
+app.put('/update-bio', (req, res) => {
+  if (!req.session.userID) return res.status(401).json({ error: 'Unauthorized' });
+
+  let { bio } = req.body;
+  bio = bio.trim();
+
+  if (typeof bio !== 'string' || bio.length > 300) {
+    return res.status(400).json({ error: 'Invalid format ot too long!' });
+  }
+
+  const insertBioSql = `UPDATE users SET bio = ? WHERE id = ?`;
+  db.run(insertBioSql, [bio, req.session.userID], (err) => {
+    if (err) {
+      console.error('Failed update bio!');
+      return res.status(500).json({ error: 'Failed update bio!' });
+    }
+    console.log(`User ${req.session.userID} updated bio successfully!`)
+    return res.json({ message: 'Bio successfully updated!' });
   })
 })
 

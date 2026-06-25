@@ -21,6 +21,10 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("settings-username").value = data.username;
         document.getElementById("settings-email").value = data.email;
 
+        document.getElementById("profile-username").innerText = data.username;
+        document.getElementById("profile-email").innerText = data.email;
+        document.getElementById('profile-bio').innerText = data.bio || 'No bio written yet.';
+
         if (data.role === 'admin') {
           const adminContainer = document.getElementById('admin-panel');
           if (adminContainer) {
@@ -371,5 +375,58 @@ document.getElementById("search-user-btn").addEventListener("click", () => {
     .catch(err => {
       ui.notify(err.message);
       document.getElementById("section-show-users").innerText = "";
+    })
+})
+
+const editBioBtn = document.getElementById('edit-bio-btn');
+const saveBioBtn = document.getElementById('save-bio-btn');
+const cancelBioBtn = document.getElementById('cancel-bio-btn');
+
+const profileBio = document.getElementById('profile-bio');
+const bioEditZone = document.getElementById('bio-edit-zone');
+const bioTextarea = document.getElementById('bio-textarea');
+
+
+editBioBtn.addEventListener('click', () => {
+  bioTextarea.value = profileBio.textContent === 'No bio written yet.' ? '' : profileBio.textContent;
+
+  profileBio.style.display = 'none';
+  editBioBtn.style.display = 'none';
+  bioEditZone.style.display = 'block';
+})
+
+cancelBioBtn.addEventListener('click', () => {
+  bioEditZone.style.display = 'none';
+  profileBio.style.display = 'block';
+  editBioBtn.style.display = 'block';
+});
+
+saveBioBtn.addEventListener('click', () => {
+  const bio = bioTextarea.value.trim();
+
+  if (bio.length > 300) {
+    return ui.notify('Bio cannot be longer than 300 characters.');
+  }
+
+  fetch('/update-bio', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bio })
+  })
+    .then(async res => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(res.error || 'Failed to update bio!');
+      return data;
+    })
+    .then(data => {
+      profileBio.textContent = bio || 'No bio written yet.';
+      ui.notify(data.message || 'Bio successfully updated!');
+
+      bioEditZone.style.display = 'none';
+      profileBio.style.display = 'block';
+      editBioBtn.style.display = 'block';
+    })
+    .catch(err => {
+      ui.notify(err.error);
     })
 })
