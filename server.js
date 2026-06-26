@@ -10,7 +10,6 @@ const { validation } = require("./utils-server/utils-server");
 
 const { Server } = require('socket.io');
 const http = require('http');
-const { error } = require('console');
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -20,6 +19,9 @@ const middleware = require('./middleware.js');
 
 const fs = require('fs');
 const crypto = require('crypto');
+
+const AUTH_ERROR_MSG = 'Invalid email or password.';
+const SERVER_ERROR_MSG = 'A server error occurred. Please try again later.';
 
 app.use(express.json());
 
@@ -65,10 +67,10 @@ app.post("/register", async (req, res) => {
   if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error });
 
   const emailRes = validation.isValidEmail(email);
-  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error })
+  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
 
   const passwordRes = validation.isValidPassword(password);
-  if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error })
+  if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error });
 
   const userId = uuidv4();
   const clearUsername = usernameRes.value;
@@ -80,10 +82,10 @@ app.post("/register", async (req, res) => {
 
   db.run(sql, [userId, clearUsername, clearEmail, hashedPassword], function(err) {
     if (err) {
-      console.error(err.message);
-      return res.status(400).json({error: "User already exists or error"});
+      console.error('User already exists or error.', err.message);
+      return res.status(400).json({ error: "User already exists or error" });
     }
-    return res.json({message: "Success! User is created!", id: userId})
+    return res.json({ message: "Success! User is created!", id: userId });
     })
 })
 
@@ -108,8 +110,8 @@ app.post('/check-code2fa', (req, res) => {
   const sql = 'SELECT id, username, role FROM users WHERE id = ?';
   db.get(sql, [req.session.tempUserID], (err, user) => {
     if (err) {
-      console.log(err.error);
-      return res.status(500).json('Database error: ', err.error);
+      console.log('Failed check 2FA, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
       req.session.userID = req.session.tempUserID;
       req.session.username = user.username;
@@ -139,18 +141,18 @@ app.post("/login", async (req, res) => {
 
   db.get(sql, [clearEmail], async (err, user) => {
     if (err) {
-      console.error(err.message);
-      return res.status(500).json({error: "Database error"});
+      console.error('Failed login, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
 
     if (!user) {
-      return res.status(400).json({error: "Invalid email or password!"});
+      return res.status(400).json({error: AUTH_ERROR_MSG});
     }
 
     const isMatchPassword = await bcrypt.compare(clearPassword, user.password);
 
     if (!isMatchPassword) {
-      return res.status(400).json({error: "Invalid email or password!"})
+      return res.status(400).json({error: AUTH_ERROR_MSG});
     }
 
     const generatedCode = String(crypto.randomInt(0, 10000)).padStart(4, '0');
@@ -169,7 +171,7 @@ app.get('/login-page', (req, res) => {
 
 // open access for profile.html
 app.get("/profile", middleware.checkAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, "private", "profile.html"));
+  return res.sendFile(path.join(__dirname, "private", "profile.html"));
 })
 
 app.get("/api/profile", middleware.checkAuth, (req, res) => {
@@ -177,7 +179,8 @@ app.get("/api/profile", middleware.checkAuth, (req, res) => {
     const sql = "SELECT id, username, email, role, bio FROM users WHERE id = ?";
     db.get(sql, [req.session.userID], (err, user) => {
       if (err || !user) {
-        return res.status(500).json({error: "Database error"})
+        console.log('Failed profile user, ', err.message);
+        return res.status(500).json({ error: SERVER_ERROR_MSG });
       }
       return res.json({
         id: user.id,
@@ -192,7 +195,7 @@ app.get("/api/profile", middleware.checkAuth, (req, res) => {
     const sql = "SELECT id, username, email, role FROM users WHERE username = ?";
     db.get(sql, [id], (err, user) => {
       if (err || !user) {
-        return res.status(500).json({error: "Database error"});
+        return res.status(500).json({ error: SERVER_ERROR_MSG });
       }
       return res.json({
         id: user.id,
@@ -208,7 +211,7 @@ app.get("/api/profile", middleware.checkAuth, (req, res) => {
 app.post("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      res.status(500).json({error: "Could not log out."})
+      return res.status(500).json({ error: "Could not log out." });
     }
     res.clearCookie("connect.sid");
     res.json({message: "Logged out successfuly."})
@@ -227,8 +230,8 @@ app.put("/change-username", middleware.checkAuth, (req, res) => {
 
   db.run(sql, [clearUsername, req.session.userID], function(err) {
     if (err) {
-      console.error(err.message);
-      return res.status(500).json({error: "Database error"});
+      console.error('Failed change username, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
 
     req.session.username = clearUsername;
@@ -253,7 +256,7 @@ app.put("/change-email", middleware.checkAuth, (req, res) => {
 
   db.run(sql, [clearEmail, req.session.userID], function(err) {
     if (err) {
-      return res.status(500).json({error: "Database error"});
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
 
     return res.json({
@@ -281,9 +284,7 @@ app.put("/change-password", middleware.checkAuth, async (req, res) => {
   const clearNewPassword2 = newPassword2Res.value;
 
   if (clearNewPassword1 !== clearNewPassword2) {
-    return res.status(400).json({
-      error: "New passwords mismatch."
-    });
+    return res.status(400).json({ error: "New passwords mismatch." });
   }
 
   const SQL_checkCurrPass = "SELECT password FROM users WHERE id = ?";
@@ -300,8 +301,12 @@ app.put("/change-password", middleware.checkAuth, async (req, res) => {
     const updatePassword = "UPDATE users SET password = ? WHERE id = ?";
 
     db.run(updatePassword, [hashedPassword, req.session.userID], (err) => {
-      if (err) return res.status(500).json({ error: "Database error" });
-      return res.json({ message: "Password updated successfully!" })
+      if (err) {
+        console.error('Failed change password, ', err.message);
+        return res.status(500).json({ error: SERVER_ERROR_MSG });
+      }
+
+      return res.json({ message: "Password updated successfully!" });
     })
   })
 })
@@ -311,7 +316,7 @@ app.delete("/delete-account", middleware.checkAuth, async (req, res) => {
   const { password } = req.body;
 
   const passwordRes = validation.isValidPassword(password);
-  if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error })
+  if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error });
   const clearPassword = passwordRes.value;
 
   const userID = req.session.userID;
@@ -319,7 +324,10 @@ app.delete("/delete-account", middleware.checkAuth, async (req, res) => {
   const SQL_checkCurrPass = "SELECT password FROM users WHERE id = ?";
 
   db.get(SQL_checkCurrPass, [userID], async (err, user) => {
-    if (err || !user) return res.status(500).json({ error: "Database error!" });
+    if (err || !user) {
+      console.log('Failed password to delete account, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    }
 
     const isPassword = await bcrypt.compare(clearPassword, user.password);
 
@@ -329,14 +337,17 @@ app.delete("/delete-account", middleware.checkAuth, async (req, res) => {
 
     db.run(SQL_deleteAccount, [userID], function(err) {
       if (err) {
-        console.error("Database error: ", err.message);
-        return res.status(500).json({ error: "Failed to delete from DB" });
+        console.error("Failed delete account, ", err.message);
+        return res.status(500).json({ error: SERVER_ERROR_MSG });
       }
 
       req.session.destroy((err) => {
-        if (err) return res.status(500).json({ error: "Session cleanup failed." });
+        if (err) {
+          console.error('Failed delete account, ', err.message);
+          return res.status(500).json({ error: SERVER_ERROR_MSG });
+        }
         res.clearCookie("connect.sid");
-        return res.json({ message: "Account permanently deleted" })
+        return res.json({ message: "Account permanently deleted" });
       })
     })
   })
@@ -354,8 +365,8 @@ app.post("/api/search-user", middleware.checkAuth, async (req, res) => {
 
   db.get(sqlSearchUsers, [clearUsername, req.session.userID], async (err, user) => {
     if (err) {
-      console.error("Database error: ", err.message);
-      return res.status(500).json({ error: "Database error" });
+      console.error("Failed search users, ", err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
 
     if (!user) { // if user not found
@@ -385,8 +396,8 @@ app.post("/api/send-message", middleware.checkAuth, async (req, res) => {
 
   db.run(sqlSendMessage, [sender_id, receiver_id, clearContent], function(err) {
     if (err) {
-      console.error("Database error: ", err.message);
-      return res.status(500).json({ error: "Database error" });
+      console.error("Failed send message, ", err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
 
     const newMessage = {
@@ -399,7 +410,7 @@ app.post("/api/send-message", middleware.checkAuth, async (req, res) => {
     io.to(`user_${receiver_id}`).emit('new_message', newMessage);
     io.to(`user_${sender_id}`).emit('new_message', newMessage);
 
-    return res.json({ message: 'Message sent successfully!' })
+    return res.json({ message: 'Message sent successfully!' });
   })
 })
 
@@ -417,10 +428,10 @@ app.get('/api/messages/:otherId', middleware.checkAuth, (req, res) => {
 
   db.all(sqlShowMessages, [myId, otherId, otherId, myId], (err, rows) => {
     if (err) {
-      console.error(err.message);
-      return res.status(500).json({ error: "Database error" });
+      console.error('Failed show messages, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
-    res.json(rows);
+    return res.json(rows);
   })
 })
 
@@ -438,8 +449,8 @@ app.post('/get-transcript', (req, res) => {
 
   db.all(sql, [senderId, receiverId, receiverId, senderId], (err, rows) => {
     if (err) {
-      console.error(err.message);
-      return res.status(500).json({ error: 'Database error' });
+      console.error('Failed get transcript, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
     if (!rows || rows.length === 0) return res.status(404).json({ error: 'No messages found!' });
     const chatContent = rows.map(row => row.content).join('\n');
@@ -467,8 +478,8 @@ app.post('/forgot-password', async (req, res) => {
 
   db.get(sql, [email], (err, user) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Database error' });
+      console.error('Failed forgot password, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
 
     if (!user) {
@@ -484,8 +495,8 @@ app.post('/forgot-password', async (req, res) => {
     `;
     db.run(invalidateOldTokensSql, [user_id], (clearErr) => {
       if (clearErr) {
-        console.error('Failed invalidate token: ', clearErr);
-        return res.status(500).json({ error: 'Failed invalidate token!' })
+        console.error('Failed invalidate old token, ', clearErr.message);
+        return res.status(500).json({ error: 'Failed invalidate token!' });
       }
 
       const generatedToken = crypto.randomBytes(32).toString('hex');
@@ -498,7 +509,7 @@ app.post('/forgot-password', async (req, res) => {
       `;
       db.run(insertSql, [user_id, hashedToken, expires_at], (err) => {
         if (err) {
-          console.error(err);
+          console.error('Failed insert token, ', err.message);
           return res.status(500).json({ error: 'Database error' });
         }
 
@@ -539,11 +550,11 @@ app.put('/reset-password', async (req, res) => {
 
   db.get(checkTokenSql, [hashedToken, now], async (err, row) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Database error." });
+      console.error('Failed check token, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
 
-    if (!row) return res.status(400).json({ error: 'Invalid or expired token.' })
+    if (!row) return res.status(400).json({ error: 'Invalid or expired token.' });
 
     const userId = row.user_id;
 
@@ -553,21 +564,23 @@ app.put('/reset-password', async (req, res) => {
 
       db.run(updatePassword, [encryptedPassword, userId], (updateErr) => {
         if (updateErr) {
-          console.error(updateErr);
+          console.error('Failed reset password, ', updateErr.message);
           return res.status(500).json({ error: 'Failed to update password.' });
         }
 
         const invalitadeTokenSql = `UPDATE password_resets SET used = 1 WHERE token = ?`;
         db.run(invalitadeTokenSql, [hashedToken], (tokenErr) => {
-          if (tokenErr) console.error('Warning: failed to invalitade token', tokenErr);
-
-          console.log('Password successfully reset. You can log in now.')
-          return res.json({ message: 'Password successfully reset. You can log in now.' })
+          if (tokenErr) {
+            console.error('Failed to invalitade token, ', tokenErr.message);
+            return res.status(500).json({ error: SERVER_ERROR_MSG });
+          }
+          console.log('Password successfully reset. You can log in now.');
+          return res.json({ message: 'Password successfully reset. You can log in now.' });
         })
       })
     } catch (bcryptErr) {
       console.log(bcryptErr);
-      return res.status(500).json({ error: 'Hashing error.' })
+      return res.status(500).json({ error: 'Hashing error.' });
     }
   })
 })
@@ -576,17 +589,16 @@ app.put('/update-bio', (req, res) => {
   if (!req.session.userID) return res.status(401).json({ error: 'Unauthorized' });
 
   let { bio } = req.body;
-  bio = bio.trim();
 
-  if (typeof bio !== 'string' || bio.length > 300) {
-    return res.status(400).json({ error: 'Invalid format ot too long!' });
-  }
+  if (typeof bio !== 'string') return res.status(400).json({ error: 'Invalid format.' });
+  bio = bio.trim();
+  if (bio.length > 300) return res.status(400).json({ error: 'Bio is too long.' });
 
   const insertBioSql = `UPDATE users SET bio = ? WHERE id = ?`;
   db.run(insertBioSql, [bio, req.session.userID], (err) => {
     if (err) {
-      console.error('Failed update bio!');
-      return res.status(500).json({ error: 'Failed update bio!' });
+      console.error('Failed update bio, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
     console.log(`User ${req.session.userID} updated bio successfully!`)
     return res.json({ message: 'Bio successfully updated!' });
