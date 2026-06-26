@@ -151,15 +151,42 @@
     </form>
   </dialog>
 
-  <main>
-    <section id="section-search-users">
+  <main class="profile-layout">
+    <section id="section-profile-card" class="profile-card">
+      <div class="avatar-container">
+        <img id="profile-avatar" src="./images/default-avatar.jpeg" alt="User Avatar">
+      </div>
+
+      <div class="profile-details">
+        <h2 id="profile-username">@username</h2>
+        <p id="profile-email" class="profile-meta">user@example.com</p>
+
+        <div class="bio-container">
+          <h3>About me</h3>
+          <p id="profile-bio">No bio written yet.</p>
+          <button id="edit-bio-btn" class="mini-btn">Edit bio</button>
+          <div id="bio-edit-zone" style="display: none;">
+            <textarea id="bio-textarea" maxlength="300"></textarea>
+            <div class="bio-edit-buttons">
+              <button id="save-bio-btn" class="mini-btn save-btn">Save</button>
+              <button id="cancel-bio-btn" class="mini-btn cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="section-search-users" class="main-content-zone">
+      <div class="search-bar">
         <input type="text" id="input-search-users" minlength="3" maxlength="64"
         placeholder="Search users">
         <button id="search-user-btn">Search</button>
+      </div>
 
       <div id="section-show-users"></div>
       <div id="section-dialog"></div>
     </section>
+
   </main>
 
   <script src="/socket.io/socket.io.js"></script>
