@@ -469,3 +469,37 @@ input:disabled {
   width: 100px;
   height: 30px;
 }
+
+.profile-layout {
+  display: flex;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.profile-card {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.avatar-container img {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #007bff;
+}
+
+.main-content-zone {
+  flex: 3;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+}
