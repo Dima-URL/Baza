@@ -7,18 +7,15 @@ const db = require("./database");
 const bcrypt = require("bcryptjs");
 const PORT = process.env.PORT || 3000;
 const { validation } = require("./utils-server/utils-server");
-
 const { Server } = require('socket.io');
 const http = require('http');
 const server = http.createServer(app);
 const io = new Server(server);
-
 const { v4: uuidv4, validate } = require('uuid');
-
 const middleware = require('./middleware.js');
-
 const fs = require('fs');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 
 const AUTH_ERROR_MSG = 'Invalid email or password.';
 const SERVER_ERROR_MSG = 'A server error occurred. Please try again later.';
@@ -124,8 +121,17 @@ app.post('/check-code2fa', (req, res) => {
   })
 })
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  statusCode: 429,
+  message: { error: 'Too many login attempts. Pleasy try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // login
-app.post("/login", async (req, res) => {
+app.post("/login", loginLimiter, async (req, res) => {
   let {email, password} = req.body;
 
   const emailRes = validation.isValidEmail(email);
@@ -146,6 +152,8 @@ app.post("/login", async (req, res) => {
     }
 
     if (!user) {
+      const fakeHash = '$2b$10$s6eA28lQfeDZkJTVPRTtGeWJYQ2jpJDZIiNLVnPDaEfiWfg0sk25e';
+      await bcrypt.compare(clearPassword, fakeHash);
       return res.status(400).json({error: AUTH_ERROR_MSG});
     }
 
