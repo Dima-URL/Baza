@@ -37,6 +37,7 @@ app.use(express.static("./public"));
 
 const adminRoute = require('./routes/admin_routes.js');
 const { type } = require('os');
+const { error } = require('console');
 app.use('/', adminRoute);
 
 io.on('connection', (socket) => {
@@ -86,8 +87,17 @@ app.post("/register", async (req, res) => {
     })
 })
 
+const mfaLimiter = rateLimit({
+  windowMs: 2 * 60 * 1000,
+  max: 5,
+  statusCode: 429,
+  message: { error: 'Too many 2FA attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // 2FA
-app.post('/check-code2fa', (req, res) => {
+app.post('/check-code2fa', mfaLimiter, (req, res) => {
   let { userCode } = req.body;
 
   if (typeof userCode != 'string') {
@@ -100,8 +110,25 @@ app.post('/check-code2fa', (req, res) => {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
 
+  if (!req.session.correct2faCode || !req.session.tempUserID) {
+    return res.status(400).json({ error: 'Session expired or invalid. Please login again.' });
+  }
+
   if (req.session.correct2faCode !== userCode) {
-    return res.status(401).json({ error: 'Code incorrect!'});
+
+    req.session.mfaAttempts = (req.session.mfaAttempts || 0) + 1;
+    if (req.session.mfaAttempts >= 5) {
+      return req.session.destroy(err => {
+        if (err) {
+          console.error('Failed close session, ', err.message);
+          return res.status(500).json({ error: SERVER_ERROR_MSG });
+        }
+
+        res.clearCookie('connect.sid');
+        return res.json('Too many 2FA attempts. Please try again later.');
+      })
+    }
+    return res.status(401).json({ error: 'Code incorrect.' });
   }
 
   const sql = 'SELECT id, username, role FROM users WHERE id = ?';
@@ -116,6 +143,7 @@ app.post('/check-code2fa', (req, res) => {
 
       delete req.session.tempUserID;
       delete req.session.correct2faCode;
+      delete req.session.mfaAttempts;
 
       return res.json({ message: "Welcome!", user: user.username });
   })
@@ -123,7 +151,7 @@ app.post('/check-code2fa', (req, res) => {
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 3,
   statusCode: 429,
   message: { error: 'Too many login attempts. Pleasy try again later.' },
   standardHeaders: true,
@@ -613,6 +641,6 @@ app.put('/update-bio', (req, res) => {
   })
 })
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`[!] SERVER is running on http://localhost:${PORT}`);
 })
