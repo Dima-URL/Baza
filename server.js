@@ -131,21 +131,40 @@ app.post('/check-code2fa', mfaLimiter, (req, res) => {
     return res.status(401).json({ error: 'Code incorrect.' });
   }
 
-  const sql = 'SELECT id, username, role FROM users WHERE id = ?';
+  const sql = 'SELECT id, username, email, role FROM users WHERE id = ?';
   db.get(sql, [req.session.tempUserID], (err, user) => {
     if (err) {
       console.log('Failed check 2FA, ', err.message);
       return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
-      req.session.userID = req.session.tempUserID;
-      req.session.username = user.username;
-      req.session.role = user.role;
 
-      delete req.session.tempUserID;
-      delete req.session.correct2faCode;
-      delete req.session.mfaAttempts;
+    if (req.session.stayLoggedIn === true) {
+      const SECRET_KEY = process.env.SESSION_SECRET || 'super_secret_key_123';
+      const days = 30;
+      const expiryTime = Date.now() + (days * 24 * 60 * 60 * 1000);
+      const hmac = crypto.createHmac('sha256', SECRET_KEY);
+      hmac.update(`${user.email}:${expiryTime}`);
+      const signature = hmac.digest('hex');
+      const rawCookieValue = `${user.email}:${expiryTime}:${signature}`;
+      const secureCookie = Buffer.from(rawCookieValue).toString('base64');
 
-      return res.json({ message: "Welcome!", user: user.username });
+      res.cookie('remember_me', secureCookie, {
+        maxAge:  days * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: false,
+        sameSite: 'strict'
+      })
+    }
+
+    req.session.userID = req.session.tempUserID;
+    req.session.username = user.username;
+    req.session.role = user.role;
+
+    delete req.session.tempUserID;
+    delete req.session.correct2faCode;
+    delete req.session.mfaAttempts;
+
+    return res.json({ message: "Welcome!", user: user.username });
   })
 })
 
@@ -160,7 +179,7 @@ const loginLimiter = rateLimit({
 
 // login
 app.post("/login", loginLimiter, async (req, res) => {
-  let {email, password} = req.body;
+  let {email, password, stayLoggedIn} = req.body;
 
   const emailRes = validation.isValidEmail(email);
   if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
@@ -196,13 +215,14 @@ app.post("/login", loginLimiter, async (req, res) => {
 
     req.session.correct2faCode = generatedCode;
     req.session.tempUserID = user.id;
+    req.session.stayLoggedIn = !!stayLoggedIn;
 
     return res.json({ message: "MFA_REQUIRED" });
   })
 })
 
-app.get('/login-page', (req, res) => {
-  return res.sendFile(path.join(__dirname, 'private', 'login.html'));
+app.get('/login2', (req, res) => {
+  return res.sendFile(path.join(__dirname, 'private', 'login2.html'));
 })
 
 // open access for profile.html

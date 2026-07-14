@@ -67,6 +67,7 @@ document.getElementById("form-logIn").addEventListener("submit", (e) => {
 
   const email = document.getElementById("logIn-email").value.trim().toLowerCase();
   const password = document.getElementById("logIn-password").value;
+  const stayLoggedIn = document.getElementById("stay-logged-in").checked;
 
   if (!validation.isValidEmail(email) || !validation.isValidPassword(password)) {
     return ui.notify("Invalid email or password!");
@@ -75,7 +76,7 @@ document.getElementById("form-logIn").addEventListener("submit", (e) => {
   fetch("/login", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, stayLoggedIn })
   })
   .then(async res => {
     const data = await res.json()
@@ -87,7 +88,7 @@ document.getElementById("form-logIn").addEventListener("submit", (e) => {
   })
   .then(data => {
     if (data.message) {
-      window.location.href = "/login-page";
+      window.location.href = "/login2";
     }
   })
   .catch(error => {
