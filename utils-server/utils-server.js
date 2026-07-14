@@ -36,29 +36,22 @@ const validation = {
     return { valid: true, value }
   },
 
-  // validatePassword
-  // isValidPassword: (password) => {
-  //   if (typeof password !== 'string') return { valid: false, error: 'Invalid type password!' };
-  //   const value = password;
-  //   if (value.length < 8 || value.length > 128) {
-  //     return { valid: false, error: "Password short or long!" };
-  //   }
-  //   const isValid = [
-  //     /[a-zA-Z]/.test(value),
-  //     /[0-9]/.test(value),
-  //     /[\p{P}\p{S}]/u.test(value)
-  //   ].every(Boolean);
-  //   if (!isValid) return {
-  //     valid: false,
-  //     error: "Invalid format! Password must be 8-128 chars and include letters, numbers, and symbols."
-  //   };
-  //   return { valid: true, value }
-  // },
-
   isValidPassword: (password) => {
-    if (password.length < 1 || password.length > 128) return { valid: false, error: 'Invalid type password!' };
+    if (typeof password !== 'string') return { valid: false, error: 'Invalid type password!' };
     const value = password;
-    return { valid: true, value };
+    if (value.length < 8 || value.length > 128) {
+      return { valid: false, error: "Password short or long!" };
+    }
+    const isValid = [
+      /[a-zA-Z]/.test(value),
+      /[0-9]/.test(value),
+      /[\p{P}\p{S}]/u.test(value)
+    ].every(Boolean);
+    if (!isValid) return {
+      valid: false,
+      error: "Invalid format! Password must be 8-128 chars and include letters, numbers, and symbols."
+    };
+    return { valid: true, value }
   },
 
   // validateMessages
@@ -72,8 +65,5 @@ const validation = {
   }
 
 };
-
-
-
 
 module.exports = { validation };

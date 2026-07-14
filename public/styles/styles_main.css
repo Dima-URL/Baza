@@ -242,7 +242,6 @@ dialog {
   user-select: none;
 }
 
-/* В styles_main.css: сузить область действия общего правила или добавить override ниже него */
 #stay-logged-in {
   width: auto;
   padding: 0;

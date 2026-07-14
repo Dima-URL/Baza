@@ -37,7 +37,7 @@ app.use(express.static("./public"));
 
 const adminRoute = require('./routes/admin_routes.js');
 const { type } = require('os');
-const { error } = require('console');
+
 app.use('/', adminRoute);
 
 io.on('connection', (socket) => {

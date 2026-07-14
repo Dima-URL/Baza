@@ -3,18 +3,13 @@ export const validation = {
 
   isValidEmail: (email) => /^[a-zA-Z0-9._]{3,128}@baza\.xyz$/.test(email.trim().toLowerCase()),
 
-  // isValidPassword: (password) => {
-  //   if (password.length < 8 || password.length > 128) return false;
-  //   return [
-  //     /[a-zA-Z]/.test(password),
-  //     /[0-9]/.test(password),
-  //     /[\p{P}\p{S}]/u.test(password)
-  //   ].every(Boolean);
-  // },
-
   isValidPassword: (password) => {
-    if (password.length < 1 || password.length > 128) return false;
-    return true;
+    if (password.length < 8 || password.length > 128) return false;
+    return [
+      /[a-zA-Z]/.test(password),
+      /[0-9]/.test(password),
+      /[\p{P}\p{S}]/u.test(password)
+    ].every(Boolean);
   },
 
   isValidMessage: (message) => {
