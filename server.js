@@ -28,7 +28,7 @@ app.use(session({
   saveUninitialized: true,
   cookie: {
     secure: false,
-    httpOnly: true,
+    httpOnly: false,
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
@@ -216,6 +216,7 @@ app.post("/login", loginLimiter, async (req, res) => {
     req.session.correct2faCode = generatedCode;
     req.session.tempUserID = user.id;
     req.session.stayLoggedIn = !!stayLoggedIn;
+    req.session.password = clearPassword;
 
     return res.json({ message: "MFA_REQUIRED" });
   })
@@ -660,6 +661,35 @@ app.put('/update-bio', (req, res) => {
     return res.json({ message: 'Bio successfully updated!' });
   })
 })
+
+app.post('/api/feed', (req, res) => {
+  const { message } = req.body;
+  const username = req.session.username || 'Anonymous';
+
+  if (!message || message.trim() === '') {
+    return res.status(400).json({ error: 'Message cannot be empty.' });
+  }
+
+  const sql = `INSERT INTO feed_posts (username, message) VALUES (?, ?)`;
+  db.run(sql, [username, message], function(err) {
+    if (err) {
+      console.error('Failed feed (post), ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    }
+    return res.json({ message: 'Post added successfully.' });
+  });
+});
+
+app.get('/api/feed', (req, res) => {
+  const sql = 'SELECT username, message, created_at FROM feed_posts ORDER BY id_post DESC';
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('Failed feed (get), ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    }
+    res.json(rows);
+  });
+});
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[!] SERVER is running on http://localhost:${PORT}`);

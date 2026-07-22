@@ -42,7 +42,18 @@ db.serialize(() => {
       used INTEGER DEFAULT 0,
       FOREIGN KEY(id) REFERENCES user(id) ON DELETE CASCADE
     );
-  `)
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS feed_posts (
+      id_post INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      message TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `), (err) => {
+    if (err) console.error('Failed to create feed_posts table:', err.message);
+  }
 });
 
 module.exports = db;

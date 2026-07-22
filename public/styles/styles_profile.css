@@ -503,3 +503,116 @@ input:disabled {
   border-radius: 8px;
   padding: 24px;
 }
+
+/* --- News Feed --- */
+
+.news-feed-container {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.feed-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 5px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+/* Карточка создания поста */
+.create-post-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#input-news-feed {
+  width: 100%;
+  height: 80px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  resize: none;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#input-news-feed:focus {
+  border-color: var(--primary-color);
+}
+
+.post-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-primary-feed {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary-feed:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Список постов в ленте */
+.feed-posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+/* Шаблон отдельного поста (будет создаваться через JS) */
+.feed-post {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.post-author {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+.post-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.post-content {
+  font-size: 15px;
+  color: var(--text-main);
+  line-height: 1.5;
+  word-break: break-word; /* Важно, чтобы длинные XSS-пейлоады не ломали верстку */
+}
