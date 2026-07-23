@@ -28,7 +28,7 @@ app.use(session({
   saveUninitialized: true,
   cookie: {
     secure: false,
-    httpOnly: true,
+    httpOnly: false,
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
@@ -37,6 +37,7 @@ app.use(express.static("./public"));
 
 const adminRoute = require('./routes/admin_routes.js');
 const { type } = require('os');
+
 app.use('/', adminRoute);
 
 io.on('connection', (socket) => {
@@ -86,8 +87,17 @@ app.post("/register", async (req, res) => {
     })
 })
 
+const mfaLimiter = rateLimit({
+  windowMs: 2 * 60 * 1000,
+  max: 5,
+  statusCode: 429,
+  message: { error: 'Too many 2FA attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // 2FA
-app.post('/check-code2fa', (req, res) => {
+app.post('/check-code2fa', mfaLimiter, (req, res) => {
   let { userCode } = req.body;
 
   if (typeof userCode != 'string') {
@@ -100,30 +110,67 @@ app.post('/check-code2fa', (req, res) => {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
 
-  if (req.session.correct2faCode !== userCode) {
-    return res.status(401).json({ error: 'Code incorrect!'});
+  if (!req.session.correct2faCode || !req.session.tempUserID) {
+    return res.status(400).json({ error: 'Session expired or invalid. Please login again.' });
   }
 
-  const sql = 'SELECT id, username, role FROM users WHERE id = ?';
+  if (req.session.correct2faCode !== userCode) {
+
+    req.session.mfaAttempts = (req.session.mfaAttempts || 0) + 1;
+    if (req.session.mfaAttempts >= 5) {
+      return req.session.destroy(err => {
+        if (err) {
+          console.error('Failed close session, ', err.message);
+          return res.status(500).json({ error: SERVER_ERROR_MSG });
+        }
+
+        res.clearCookie('connect.sid');
+        return res.json('Too many 2FA attempts. Please try again later.');
+      })
+    }
+    return res.status(401).json({ error: 'Code incorrect.' });
+  }
+
+  const sql = 'SELECT id, username, email, role FROM users WHERE id = ?';
   db.get(sql, [req.session.tempUserID], (err, user) => {
     if (err) {
       console.log('Failed check 2FA, ', err.message);
       return res.status(500).json({ error: SERVER_ERROR_MSG });
     }
-      req.session.userID = req.session.tempUserID;
-      req.session.username = user.username;
-      req.session.role = user.role;
 
-      delete req.session.tempUserID;
-      delete req.session.correct2faCode;
+    if (req.session.stayLoggedIn === true) {
+      const SECRET_KEY = process.env.SESSION_SECRET || 'super_secret_key_123';
+      const days = 30;
+      const expiryTime = Date.now() + (days * 24 * 60 * 60 * 1000);
+      const hmac = crypto.createHmac('sha256', SECRET_KEY);
+      hmac.update(`${user.email}:${expiryTime}`);
+      const signature = hmac.digest('hex');
+      const rawCookieValue = `${user.email}:${expiryTime}:${signature}`;
+      const secureCookie = Buffer.from(rawCookieValue).toString('base64');
 
-      return res.json({ message: "Welcome!", user: user.username });
+      res.cookie('remember_me', secureCookie, {
+        maxAge:  days * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: false,
+        sameSite: 'strict'
+      })
+    }
+
+    req.session.userID = req.session.tempUserID;
+    req.session.username = user.username;
+    req.session.role = user.role;
+
+    delete req.session.tempUserID;
+    delete req.session.correct2faCode;
+    delete req.session.mfaAttempts;
+
+    return res.json({ message: "Welcome!", user: user.username });
   })
 })
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 3,
   statusCode: 429,
   message: { error: 'Too many login attempts. Pleasy try again later.' },
   standardHeaders: true,
@@ -132,7 +179,7 @@ const loginLimiter = rateLimit({
 
 // login
 app.post("/login", loginLimiter, async (req, res) => {
-  let {email, password} = req.body;
+  let {email, password, stayLoggedIn} = req.body;
 
   const emailRes = validation.isValidEmail(email);
   if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
@@ -168,13 +215,15 @@ app.post("/login", loginLimiter, async (req, res) => {
 
     req.session.correct2faCode = generatedCode;
     req.session.tempUserID = user.id;
+    req.session.stayLoggedIn = !!stayLoggedIn;
+    req.session.password = clearPassword;
 
     return res.json({ message: "MFA_REQUIRED" });
   })
 })
 
-app.get('/login-page', (req, res) => {
-  return res.sendFile(path.join(__dirname, 'private', 'login.html'));
+app.get('/login2', (req, res) => {
+  return res.sendFile(path.join(__dirname, 'private', 'login2.html'));
 })
 
 // open access for profile.html
@@ -613,6 +662,35 @@ app.put('/update-bio', (req, res) => {
   })
 })
 
-server.listen(PORT, () => {
+app.post('/api/feed', (req, res) => {
+  const { message } = req.body;
+  const username = req.session.username || 'Anonymous';
+
+  if (!message || message.trim() === '') {
+    return res.status(400).json({ error: 'Message cannot be empty.' });
+  }
+
+  const sql = `INSERT INTO feed_posts (username, message) VALUES (?, ?)`;
+  db.run(sql, [username, message], function(err) {
+    if (err) {
+      console.error('Failed feed (post), ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    }
+    return res.json({ message: 'Post added successfully.' });
+  });
+});
+
+app.get('/api/feed', (req, res) => {
+  const sql = 'SELECT username, message, created_at FROM feed_posts ORDER BY id_post DESC';
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('Failed feed (get), ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    }
+    res.json(rows);
+  });
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`[!] SERVER is running on http://localhost:${PORT}`);
 })

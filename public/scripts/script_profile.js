@@ -5,6 +5,33 @@ let myId = null;
 let activeChatId = null;
 
 
+// Функция подгрузки и рендеринга постов
+async function loadFeed() {
+  try {
+    const response = await fetch('/api/feed');
+    const posts = await response.json();
+    const feedContainer = document.querySelector('#display-news-feed');
+
+    feedContainer.innerHTML = '';
+
+    posts.forEach(post => {
+      const postElement = document.createElement('div');
+      postElement.className = 'feed-post';
+      postElement.innerHTML = `
+        <div class="post-header">
+          <span class="post-author"></span>
+        </div>
+        <div class="post-content"></div>
+      `;
+      postElement.querySelector('.post-author').textContent = `@${post.username}`;
+      postElement.querySelector('.post-content').textContent = post.message;
+
+      feedContainer.appendChild(postElement);
+    });
+  } catch (err) {
+    console.error('Failed to load feed:', err);
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/profile")
@@ -24,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("profile-username").innerText = data.username;
         document.getElementById("profile-email").innerText = data.email;
         document.getElementById('profile-bio').innerText = data.bio || 'No bio written yet.';
+        loadFeed();
 
         if (data.role === 'admin') {
           const adminContainer = document.getElementById('admin-panel');
@@ -38,12 +66,30 @@ document.addEventListener("DOMContentLoaded", () => {
     .catch(err => console.error("Error: ", err))
 })
 
-// socket.on('connect', () => {
-//   console.log('Connected to server! Socket ID:', socket.id);
-// })
+// Обработчик отправки поста
+document.querySelector('#btn-publish-post').addEventListener('click', () => {
+  const inputNewsFeed = document.querySelector("#input-news-feed").value;
+
+  if (!inputNewsFeed.trim()) return;
+
+  fetch('/api/feed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: inputNewsFeed })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (ui && ui.notify) ui.notify(data.message);
+      document.querySelector("#input-news-feed").value = '';
+      loadFeed(); // Перезагружаем ленту из БД
+    })
+    .catch(err => {
+      console.error('Error posting feed:', err);
+    });
+});
+
 
 socket.on('new_message', (msg) => {
-  // console.log('MESSAGE RECEIVED VIA SOCKET:', msg);
   if (activeChatId && (msg.sender_id === activeChatId || msg.sender_id === myId)) {
     appendMessageToFeed(msg); // display chat
   }
@@ -430,3 +476,5 @@ saveBioBtn.addEventListener('click', () => {
       ui.notify(err.error);
     })
 })
+
+// feed

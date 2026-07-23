@@ -241,3 +241,18 @@ dialog {
   background: transparent;
   user-select: none;
 }
+
+#stay-logged-in {
+  width: auto;
+  padding: 0;
+  margin: 0 0.5rem 0 0;
+  flex-shrink: 0;
+}
+
+.div-stay-logged-in p {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
+  text-align: left;
+}
