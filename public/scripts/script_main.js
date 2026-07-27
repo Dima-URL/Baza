@@ -1,3 +1,6 @@
+// import modules
+import { validation, ui } from './utils.js';
+
 // btn, modal - register
 const btnRegister = document.querySelector(".register");
 const modalRegister = document.getElementById("modal-register");
@@ -23,9 +26,6 @@ btnLogIn.addEventListener("click", () => {
 closeModalLogIn.addEventListener("click", () => {
   modalLogIn.close();
 })
-
-// import modules
-import { validation, ui } from './utils.js';
 
 // register, send data
 document.getElementById("form-register").addEventListener("submit", (e) => {
@@ -54,7 +54,6 @@ document.getElementById("form-register").addEventListener("submit", (e) => {
   })
     .then(res => res.json())
     .then(data => {
-      // alert(data.message || data.error)
       ui.notify(data.message || data.error)
       if (data.message) modalRegister.close();
     })

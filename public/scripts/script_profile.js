@@ -5,7 +5,7 @@ let myId = null;
 let activeChatId = null;
 
 
-// Функция подгрузки и рендеринга постов
+// Post loading and rendering function
 async function loadFeed() {
   try {
     const response = await fetch('/api/feed');
@@ -66,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .catch(err => console.error("Error: ", err))
 })
 
-// Обработчик отправки поста
+// Post submission handler
 document.querySelector('#btn-publish-post').addEventListener('click', () => {
   const inputNewsFeed = document.querySelector("#input-news-feed").value;
 
@@ -81,7 +81,7 @@ document.querySelector('#btn-publish-post').addEventListener('click', () => {
     .then(data => {
       if (ui && ui.notify) ui.notify(data.message);
       document.querySelector("#input-news-feed").value = '';
-      loadFeed(); // Перезагружаем ленту из БД
+      loadFeed(); // Reloading the feed from the database
     })
     .catch(err => {
       console.error('Error posting feed:', err);
@@ -178,7 +178,7 @@ function setupChatArea(receiverId, receiverName) {
         document.body.appendChild(a);
         a.click();
         a.remove();
-        window.URL.revokeObjectURL(url); // Чистим память за blob-ссылкой
+        window.URL.revokeObjectURL(url); // Clearing memory behind a blob link
       })
       .catch(err => {
         console.error(err);
@@ -216,7 +216,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   .then(() => window.location.href = "/")
   .catch(err => console.error("Logout error: ", err))
 })
-// .. logout
+
 
 const settingsBtn = document.getElementById("settings-btn");
 
@@ -476,5 +476,3 @@ saveBioBtn.addEventListener('click', () => {
       ui.notify(err.error);
     })
 })
-
-// feed
