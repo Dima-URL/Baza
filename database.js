@@ -11,48 +11,54 @@ const db = new sqlite3.Database("./database_baza.db", (err) => {
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      username TEXT NOT NULL UNIQUE,
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      role TEXT CHECK(role IN ('user', 'admin')) DEFAULT 'user'
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    role TEXT CHECK(role IN ('user', 'admin')) DEFAULT 'user'
     );
-  `);
+  `), (err) => {
+    if (err) console.error('Failed, users table:', err.message);
+  }
 
   db.run(`
     CREATE TABLE IF NOT EXISTS messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      sender_id INTEGER NOT NULL,
-      receiver_id INTEGER NOT NULL,
-      content TEXT NOT NULL,
-      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      is_read INTEGER DEFAULT 0, -- 0: not read, 1: read
-      FOREIGN KEY (sender_id) REFERENCES users(id),
-      FOREIGN KEY (receiver_id) REFERENCES users(id)
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_read INTEGER DEFAULT 0, -- 0: not read, 1: read
+    FOREIGN KEY (sender_id) REFERENCES users(id),
+    FOREIGN KEY (receiver_id) REFERENCES users(id)
     );
-  `);
+  `), (err) => {
+    if (err) console.error('Failed, messages table:', err.message);
+  }
 
   db.run(`
     CREATE TABLE IF NOT EXISTS password_resets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      token TEXT NOT NULL,
-      expires_at DATETIME NOT NULL,
-      used INTEGER DEFAULT 0,
-      FOREIGN KEY(id) REFERENCES user(id) ON DELETE CASCADE
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used INTEGER DEFAULT 0,
+    FOREIGN KEY(id) REFERENCES user(id) ON DELETE CASCADE
     );
-  `);
+  `), (err) => {
+    if (err) console.error('Failed, password_resets table:', err.message);
+  }
 
   db.run(`
     CREATE TABLE IF NOT EXISTS feed_posts (
-      id_post INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL,
-      message TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    id_post INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `), (err) => {
-    if (err) console.error('Failed to create feed_posts table:', err.message);
+    if (err) console.error('Failed, feed_posts table:', err.message);
   }
 });
 

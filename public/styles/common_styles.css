@@ -1,7 +1,7 @@
 /* notify */
 .notify::backdrop {
   background: transparent;
-  pointer-events: none; /* Пропускает клики сквозь фон */
+  pointer-events: none;
 }
 
 .notify {
@@ -25,11 +25,9 @@
   z-index: 9999;
 }
 
-/* Состояния через атрибуты */
 .notify[data-type="success"] { border-left-color: #2ecc71; }
 .notify[data-type="error"] { border-left-color: #d93025; }
 
-/* Скрываем dialog по умолчанию правильно */
 .notify:not([open]) {
   display: none;
 }

@@ -15,12 +15,11 @@ body {
   font-family: 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Верхняя панель */
 header {
   height: 70px;
   background-color: white;
   display: flex;
-  justify-content: center; /* Центрируем внутренний контейнер */
+  justify-content: center;
   align-items: center;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   padding: 0 20px;
@@ -74,7 +73,6 @@ header {
   opacity: 0.9;
 }
 
-/* Основная рабочая область */
 main {
   width: 60%;
   margin: 40px auto;
@@ -92,13 +90,10 @@ main {
 
 .label-setting {
   display: block;
-  /* margin: 10px;
-  padding: 10px; */
 }
 
-/* Улучшенная модалка Settings */
 .modal-settings {
-  width: 450px; /* Фиксированная ширина лучше для форм */
+  width: 450px;
   border: none;
   border-radius: 16px;
   padding: 30px;
@@ -106,7 +101,6 @@ main {
   background: white;
 }
 
-/* Стилизация фона за модалкой */
 .modal-settings::backdrop {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
@@ -135,7 +129,6 @@ main {
   color: #666;
 }
 
-/* Группа: инпут + кнопка рядом */
 .input-group {
   display: flex;
   gap: 10px;
@@ -152,7 +145,7 @@ main {
   font-size: 14px;
 }
 
-/* Кнопки внутри настроек */
+/* Buttons inside settings */
 .setting-btn {
   padding: 8px 12px;
   background-color: #f0f0f0;
@@ -170,11 +163,8 @@ main {
   border-color: #ccc;
 }
 
-/*  */
+/* --- Styles for modal settings (Profile Settings) --- */
 
-/* --- Стили для модальных окон настроек (Profile Settings) --- */
-
-/* Общий контейнер для кнопок в настройках */
 .label-setting {
   margin-bottom: 25px;
   display: flex;
@@ -188,14 +178,12 @@ main {
   align-items: center;
 }
 
-/* Инпуты в настройках (readonly/disabled состояния) */
 input:disabled {
   background-color: #eee;
   color: #888;
   border-color: #ccc;
 }
 
-/* Кнопки вызова модалок */
 .setting-btn {
   height: 45px;
   padding: 0 20px;
@@ -212,7 +200,6 @@ input:disabled {
   border-color: #bbb;
 }
 
-/* Специфические стили для модалок настроек */
 .modal-change-data,
 .modal-change-password,
 .modal-delete-account {
@@ -224,7 +211,6 @@ input:disabled {
   box-shadow: 0 20px 40px rgba(0,0,0,0.25);
 }
 
-/* Заголовки в модалках */
 .modal-title {
   font-size: 22px;
   font-weight: 700;
@@ -233,9 +219,9 @@ input:disabled {
   color: #1a1a1a;
 }
 
-/* Секция Delete Account (Danger Zone) */
+/* Section Delete Account (Danger Zone) */
 .modal-delete-account {
-  border-top: 5px solid #d93025; /* Визуальный маркер опасности */
+  border-top: 5px solid #d93025;
 }
 
 .delete-warning-text {
@@ -266,7 +252,6 @@ input:disabled {
   background-color: #b71c1c;
 }
 
-/* Крестик закрытия (универсальный для всех модалок) */
 .close-modal-btn {
   position: absolute;
   top: 15px;
@@ -280,8 +265,8 @@ input:disabled {
 .close-modal-btn:hover {
   opacity: 1;
 }
-/*  */
-/* Группировка всех модалок настроек для единого стиля */
+
+/* Grouping all settings modals into a single style */
 #modal-change-username,
 #modal-change-email,
 #modal-change-password,
@@ -290,24 +275,21 @@ input:disabled {
   border-radius: 16px;
   padding: 35px;
   width: 100%;
-  max-width: 400px; /* Совпадает с твоими формами Login/Register */
+  max-width: 400px;
   background: white;
   box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  position: relative; /* Для позиционирования крестика */
+  position: relative;
 }
 
-/* Стилизация заголовков внутри этих модалок */
 #modal-change-username h2,
 #modal-change-email h2,
 #modal-change-password h2 {
   margin-top: 0;
-  /* margin-bottom: 25px; */
   font-size: 24px;
   font-weight: 700;
   color: #1a1a1a;
 }
 
-/* Стилизация кнопок внутри этих модалок (используем твой зеленый) */
 #modal-change-username button[type="submit"],
 #modal-change-email button[type="submit"],
 #modal-change-password button[type="submit"] {
@@ -315,7 +297,7 @@ input:disabled {
   height: 50px;
   border: none;
   border-radius: 8px;
-  background-color: #2ecc71; /* Твой зеленый из .btn.logIn */
+  background-color: #2ecc71;
   color: white;
   font-size: 18px;
   font-weight: 600;
@@ -330,7 +312,6 @@ input:disabled {
   background-color: #27ae60;
 }
 
-/* Делаем инпуты во всех модалках изменения данных одинаковыми */
 #modal-change-username input,
 #modal-change-email input,
 #modal-change-password input,
@@ -338,7 +319,6 @@ input:disabled {
   width: 100%;
   box-sizing: border-box;
   height: 45px;
-  /* margin: 8px 0 20px 0; */
   padding: 0 15px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -348,7 +328,6 @@ input:disabled {
 
 /*  notify...  */
 .notify {
-  /* Сбрасываем системные стили диалога */
   position: fixed;
   margin: 0;
   top: auto;
@@ -356,29 +335,26 @@ input:disabled {
   bottom: 20px;
   right: 20px;
 
-  /* Твои стили */
   min-width: 280px;
   max-width: 400px;
   padding: 15px 45px 15px 20px;
   border-radius: 12px;
   background: white;
-  border: none; /* Убираем черную рамку диалога */
+  border: none;
   border-left: 6px solid #2ecc71;
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 
-  /* Анимация */
+  /* Animation */
   display: flex;
   align-items: center;
   transition: opacity 0.3s, transform 0.3s;
 }
 
-/* Убираем затемнение именно для этого диалога */
 .notify::backdrop {
   background: transparent !important;
   backdrop-filter: none !important;
 }
 
-/* Скрытое состояние (когда диалог не открыт, стили не важны, но для анимации оставим) */
 .notify:not([open]) {
   display: none;
   opacity: 0;
@@ -387,17 +363,15 @@ input:disabled {
 
 .notify-close-btn {
   position: absolute;
-  /* !!! ИСПРАВЛЕНИЕ ТУТ !!! */
-  right: 8px;   /* Отступ от правого края */
-  top: 8px;     /* Отступ от верхнего края (вместо top: 50%) */
-  transform: none; /* Убираем translateY(-50%), он больше не нужен */
+  right: 8px;
+  top: 8px;
+  transform: none;
 
-  /* Твои старые стили кнопки */
   background: none;
   border: none;
   cursor: pointer;
   opacity: 0.5;
-  padding: 5px; /* Площадь клика */
+  padding: 5px;
   display: flex;
   transition: opacity 0.2s;
 }
@@ -406,19 +380,16 @@ input:disabled {
   opacity: 1;
 }
 
-/* Стилизация текста */
 #notify-text {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
   word-wrap: break-word;
   color: #333;
-  /* Убедись, что текст не имеет лишних отступов сверху */
   margin: 0;
 }
-/*  ...notify  */
 
-/* input search .. */
+/* input search */
 #input-search-users {
   width: 84%;
   height: 30px;
@@ -440,7 +411,6 @@ input:disabled {
   background-color: #27ae60;
   cursor: pointer;
 }
-/* ..input search */
 
 /* separate messages  */
 .message-bubble { max-width: 70%; padding: 8px; margin: 5px; border-radius: 10px; }
@@ -522,7 +492,7 @@ input:disabled {
   padding-bottom: 10px;
 }
 
-/* Карточка создания поста */
+/* Create post Card */
 .create-post-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -573,7 +543,7 @@ input:disabled {
   background-color: var(--primary-hover);
 }
 
-/* Список постов в ленте */
+/* List of posts in feed */
 .feed-posts-list {
   display: flex;
   flex-direction: column;
@@ -581,7 +551,6 @@ input:disabled {
   margin-top: 10px;
 }
 
-/* Шаблон отдельного поста (будет создаваться через JS) */
 .feed-post {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -614,5 +583,5 @@ input:disabled {
   font-size: 15px;
   color: var(--text-main);
   line-height: 1.5;
-  word-break: break-word; /* Важно, чтобы длинные XSS-пейлоады не ломали верстку */
+  word-break: break-word;
 }

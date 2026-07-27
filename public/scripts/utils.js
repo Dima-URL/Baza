@@ -3,18 +3,13 @@ export const validation = {
 
   isValidEmail: (email) => /^[a-zA-Z0-9._]{3,128}@baza\.xyz$/.test(email.trim().toLowerCase()),
 
-  // isValidPassword: (password) => {
-  //   if (password.length < 8 || password.length > 128) return false;
-  //   return [
-  //     /[a-zA-Z]/.test(password),
-  //     /[0-9]/.test(password),
-  //     /[\p{P}\p{S}]/u.test(password)
-  //   ].every(Boolean);
-  // },
-
   isValidPassword: (password) => {
-    if (password.length < 1 || password.length > 128) return false;
-    return true;
+    if (password.length < 8 || password.length > 128) return false;
+    return [
+      /[a-zA-Z]/.test(password),
+      /[0-9]/.test(password),
+      /[\p{P}\p{S}]/u.test(password)
+    ].every(Boolean);
   },
 
   isValidMessage: (message) => {
@@ -38,20 +33,17 @@ export const ui = {
       return;
     }
 
-    // Сброс состояния
     if (toast.open) toast.close();
 
     toast.dataset.type = isError ? 'error' : 'success';
     textElement.innerText = message;
 
-    // Один обработчик на закрытие
     if (closeBtn && !closeBtn.onclick) {
       closeBtn.onclick = () => toast.close();
     }
 
     toast.showModal();
 
-    // Авто-закрытие через 5 секунд
     setTimeout(() => {
       if (toast.open) toast.close();
     }, 5000);

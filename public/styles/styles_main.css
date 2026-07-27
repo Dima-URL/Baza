@@ -69,7 +69,7 @@ main {
   line-height: 1.6;
 }
 
-/* --- Кнопки --- */
+/* --- Buttons --- */
 .section-btns {
   display: flex;
   gap: 1rem;
@@ -107,7 +107,7 @@ main {
   background: #f1f5f9;
 }
 
-/* --- Модальные окна (dialog) --- */
+/* --- Modal (dialog) --- */
 dialog {
   border: none;
   border-radius: 16px;
@@ -151,7 +151,6 @@ input:focus {
   ring: 2px solid var(--primary);
 }
 
-/* --- 1. Кнопки внутри форм (Центрирование и стиль) --- */
 .div-btn-create-login {
   display: flex;
   justify-content: center;
@@ -165,7 +164,7 @@ input:focus {
   background: var(--primary);
   color: white;
   border: none;
-  border-radius: 25px; /* Овальная кнопка выглядит современнее */
+  border-radius: 25px;
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
@@ -177,9 +176,8 @@ input:focus {
   box-shadow: 0 6px 15px rgba(46, 204, 113, 0.3);
 }
 
-/* --- 2. Кнопка-крестик (Верхний правый угол) --- */
 dialog {
-  position: relative; /* Чтобы крестик позиционировался относительно окна */
+  position: relative;
 }
 
 #close-modal-register,
@@ -208,7 +206,7 @@ dialog {
   opacity: 0.6;
 }
 
-/* --- 3. Email Suffix (@baza.xyz в одну строку) --- */
+/* --- 3. Email Suffix (@baza.xyz in one line) --- */
 .input-group {
   display: flex;
   align-items: center;
@@ -227,8 +225,8 @@ dialog {
 
 .input-group input {
   flex: 1;
-  border: none !important; /* Убираем рамку самого инпута */
-  margin-bottom: 0 !important; /* Убираем твой старый отступ */
+  border: none !important;
+  margin-bottom: 0 !important;
   padding: 0.75rem;
   outline: none;
 }
