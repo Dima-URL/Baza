@@ -51,11 +51,6 @@ const validation = {
     };
     return { valid: true, value }
   },
-  isValidPassword: (password) => {
-    if (password.length < 1 || password.length > 128) return { valid: false, error: 'Invalid type password!' };
-    const value = password;
-    return { valid: true, value };
-  },
 
   isValidMessage: (message) => {
     if (typeof message !== 'string') return { valid: false, error: 'Invalid type message!' };

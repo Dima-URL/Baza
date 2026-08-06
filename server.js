@@ -691,6 +691,23 @@ app.get('/api/feed', (req, res) => {
   });
 });
 
+app.get('/api/avatars', (req, res) => {
+  const gender = req.query.gender || 'all';
+  let query;
+  let param;
+  if (gender === 'all') {
+    query = `SELECT * FROM avatars WHERE is_premium = 0;`;
+  } else {
+    query = `SELECT * FROM avatars WHERE gender = ? AND is_premium = 0`;
+    param = [gender];
+  }
+
+  db.all(query, param, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    return res.json(rows);
+  })
+})
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[!] SERVER is running on http://localhost:${PORT}`);
 })

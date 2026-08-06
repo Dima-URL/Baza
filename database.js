@@ -60,6 +60,18 @@ db.serialize(() => {
   `), (err) => {
     if (err) console.error('Failed, feed_posts table:', err.message);
   }
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS avatars (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    gender TEXT NOT NULL,
+    is_premium INTEGER DEFAULT 0
+    )
+  `), (err) => {
+    if (err) console.error('Failed, avatars table:', err.message);
+  }
 });
 
 module.exports = db;

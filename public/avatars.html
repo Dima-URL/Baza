@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avatars</title>
+
+  <style>
+    body { font-family: monospace; background: #121212; color: #fff; padding: 20px; }
+    .filters { margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+    .card { border: 1px solid #333; padding: 10px; border-radius: 5px; text-align: center; background: #1a1a1a; }
+    .card img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; }
+    .badge-premium { color: #ffd700; font-weight: bold; border: 1px solid #ffd700; padding: 2px 5px; margin-top: 5px; display: inline-block; font-size: 11px; }
+  </style>
+
+</head>
+<body>
+  <h1>Avatars</h1>
+
+  <div class="filters">
+    <label for="genderSelect">Filter: </label>
+    <select id="genderSelect" onchange="loadAvatars(this.value)">
+      <option value="all">All</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </div>
+
+  <div class="grid" id="avatarGrid"></div>
+
+  <script>
+    async function loadAvatars(gender = 'all') {
+      const res = await fetch(`/api/avatars?gender=${gender}`);
+      const data = await res.json();
+
+      const grid = document.getElementById('avatarGrid');
+      grid.innerHTML = '';
+
+      if (Array.isArray(data)) {
+        data.forEach(avatar => {
+          grid.innerHTML += `
+            <div class="card">
+              <img src="${avatar.url}" alt="${avatar.title}">
+              <p>${avatar.title}</p>
+              ${avatar.is_premium ? '<span class="badge-premium">Premium</span>' : ''}
+            </div>
+          `
+        })
+      }
+    }
+    loadAvatars('all');
+  </script>
+</body>
+</html>
