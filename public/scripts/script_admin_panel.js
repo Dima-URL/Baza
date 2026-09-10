@@ -1,12 +1,12 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
   loadUsers();
 
-  fetch("/api/profile")
+  fetch('/api/profile')
   .then(res => res.json())
   .then(data => {
-    document.getElementById("admin-name").innerText = data.username;
+    document.getElementById('admin-name').innerText = data.username;
   })
-  .catch(err => console.error("Error:", err));
+  .catch(err => console.error('Error:', err));
 })
 
 function appendUsersToFeed(user) {
@@ -16,7 +16,7 @@ function appendUsersToFeed(user) {
   const userDiv = document.createElement('div');
   userDiv.className = 'user';
   userDiv.innerHTML = `
-    <span>${user.id}</span> |
+    <span>${user.user_id}</span> |
     <span>${user.username}</span> |
     <span>${user.email}</span> |
     <span>${user.created_at}</span> |

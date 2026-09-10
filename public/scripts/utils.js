@@ -29,10 +29,9 @@ export const ui = {
     const closeBtn = document.getElementById('notify-close');
 
     if (!toast || !textElement) {
-      console.error("Notification elements not found in DOM");
+      console.error('Notification elements not found in DOM');
       return;
     }
-
     if (toast.open) toast.close();
 
     toast.dataset.type = isError ? 'error' : 'success';
@@ -41,7 +40,6 @@ export const ui = {
     if (closeBtn && !closeBtn.onclick) {
       closeBtn.onclick = () => toast.close();
     }
-
     toast.showModal();
 
     setTimeout(() => {

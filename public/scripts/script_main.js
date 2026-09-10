@@ -2,96 +2,103 @@
 import { validation, ui } from './utils.js';
 
 // btn, modal - register
-const btnRegister = document.querySelector(".register");
-const modalRegister = document.getElementById("modal-register");
+const btnRegister = document.querySelector('.register');
+const modalRegister = document.getElementById('modal-register');
 const closeModalRegister = document.getElementById('close-modal-register');
 
-btnRegister.addEventListener("click", () => {
+btnRegister.addEventListener('click', () => {
   modalRegister.showModal();
 })
 
-closeModalRegister.addEventListener("click", () => {
+closeModalRegister.addEventListener('click', () => {
   modalRegister.close();
 })
 
 // btn, modal - LogIn
-const btnLogIn = document.querySelector(".logIn");
-const modalLogIn = document.getElementById("modal-logIn");
+const btnLogIn = document.querySelector('.logIn');
+const modalLogIn = document.getElementById('modal-logIn');
 const closeModalLogIn = document.getElementById('close-modal-logIn');
 
-btnLogIn.addEventListener("click", () => {
+btnLogIn.addEventListener('click', () => {
   modalLogIn.showModal();
 })
 
-closeModalLogIn.addEventListener("click", () => {
+closeModalLogIn.addEventListener('click', () => {
   modalLogIn.close();
 })
 
 // register, send data
-document.getElementById("form-register").addEventListener("submit", (e) => {
+document.getElementById('form-register').addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const username = document.getElementById("enter-username").value.trim();
-  const email = (document.getElementById("enter-email").value + "@baza.xyz").trim().toLowerCase();
-  const password = document.getElementById("enter-password").value;
+  const username = document.getElementById('enter-username').value.trim();
+  const email = (document.getElementById('enter-email').value + '@baza.xyz').trim().toLowerCase();
+  const password = document.getElementById('enter-password').value;
 
   if (!validation.isValidUsername(username)) {
-    return ui.notify("Invalid username format (3-64 chars, letters/numbers/_ only)");
+    return ui.notify('Invalid username format (3-64 chars, letters/numbers/_ only)');
   }
 
   if (!validation.isValidEmail(email)) {
-    return ui.notify("Invalid email. Must be prefix@baza.xyz");
+    return ui.notify('Invalid email. Must be prefix@baza.xyz');
   }
 
   if (!validation.isValidPassword(password)) {
-    return ui.notify("Password must be 8+ chars and include letters, numbers, and symbols");
+    return ui.notify('Password must be 8+ chars and include letters, numbers, and symbols');
   }
 
-  fetch("/register", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ username, email, password })
+  fetch('/register', {
+  method: "POST",
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ username, email, password })
+})
+  .then(async res => {
+    const data = await res.json();
+    if (!res.ok) {
+      ui.notify(data.error || 'Registration failed');
+      return;
+    }
+    ui.notify(data.message);
+    modalRegister.close();
   })
-    .then(res => res.json())
-    .then(data => {
-      ui.notify(data.message || data.error)
-      if (data.message) modalRegister.close();
-    })
-    .catch(error => console.error(`Fetch Error: `, error.message))
+  .catch(error => {
+    console.error('Fetch Error:', error.message);
+    ui.notify('Network or server error.');
+  });
 })
 
 //  logIn
-document.getElementById("form-logIn").addEventListener("submit", (e) => {
+document.getElementById('form-logIn').addEventListener('submit', (e) => {
   e.preventDefault();
 
-  const email = document.getElementById("logIn-email").value.trim().toLowerCase();
-  const password = document.getElementById("logIn-password").value;
-  const stayLoggedIn = document.getElementById("stay-logged-in").checked;
+  const email = document.getElementById('logIn-email').value.trim().toLowerCase();
+  const password = document.getElementById('logIn-password').value;
+  const stayLoggedIn = document.getElementById('stay-logged-in').checked;
 
   if (!validation.isValidEmail(email) || !validation.isValidPassword(password)) {
-    return ui.notify("Invalid email or password!");
+    return ui.notify('Invalid email or password!');
   }
 
-  fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
+  fetch('/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, stayLoggedIn })
   })
   .then(async res => {
-    const data = await res.json()
+    const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || "Invalid email or password!");
+      throw new Error(data.error || 'Invalid email or password!');
     }
     return data;
   })
   .then(data => {
-    if (data.message) {
-      window.location.href = "/login2";
+    if (data.message === 'MFA_REQUIRED') {
+      window.location.href = '/login2';
     }
   })
   .catch(error => {
-    ui.notify(error.message)
-    console.error("Login Error: ", error.message)
-  })
+    ui.notify(error.message);
+    console.error("Login Error: ", error.message);
+  });
 })

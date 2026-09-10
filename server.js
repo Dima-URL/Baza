@@ -1,12 +1,12 @@
 require('dotenv').config();
 const path = require('path');
-const express = require("express");
+const express = require('express');
 const app = express();
-const session = require("express-session");
-const db = require("./database");
-const bcrypt = require("bcryptjs");
+const session = require('express-session');
+const db = require('./db');
+const bcrypt = require('bcryptjs');
 const PORT = process.env.PORT || 3000;
-const { validation } = require("./utils-server/utils-server");
+const { validation } = require('./utils-server/utils-server');
 const { Server } = require('socket.io');
 const http = require('http');
 const server = http.createServer(app);
@@ -19,6 +19,7 @@ const rateLimit = require('express-rate-limit');
 
 const AUTH_ERROR_MSG = 'Invalid email or password.';
 const SERVER_ERROR_MSG = 'A server error occurred. Please try again later.';
+const USER_NOT_FOUND = 'User not found';
 
 app.use(express.json());
 
@@ -35,7 +36,7 @@ app.use(session({
 
 app.use(express.static("./public"));
 
-const adminRoute = require('./routes/admin_routes.js');
+const adminRoute = require('./admin-routes/admin-routes.js');
 const { type } = require('os');
 
 app.use('/', adminRoute);
@@ -57,34 +58,44 @@ io.on('connection', (socket) => {
   });
 });
 
-// register
-app.post("/register", async (req, res) => {
-  let {username, email, password} = req.body;
+app.post('/register', async (req, res) => {
+  let { username, email, password } = req.body;
 
   const usernameRes = validation.isValidUsername(username);
-  if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error });
+  if (!usernameRes.valid) return res.status(400).json({ error: usernameRes.error });
 
   const emailRes = validation.isValidEmail(email);
-  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
+  if (!emailRes.valid) return res.status(400).json({ error: emailRes.error });
 
   const passwordRes = validation.isValidPassword(password);
-  if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error });
+  if (!passwordRes.valid) return res.status(400).json({ error: passwordRes.error });
 
   const userId = uuidv4();
-  const clearUsername = usernameRes.value;
-  const clearEmail = emailRes.value;
-  const clearPassword = passwordRes.value;
-  const hashedPassword = await bcrypt.hash(clearPassword, 10);
+  username = usernameRes.value;
+  email = emailRes.value;
+  password = passwordRes.value;
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  const sql = "INSERT INTO users (id, username, email, password) VALUES (?, ?, ?, ?);"
+  const sqlQuery = `
+    INSERT INTO users (user_id, username, email, password)
+    VALUES ($1, $2, $3, $4)
+    RETURNING user_id;
+  `;
+  const values = [userId, username, email, hashedPassword];
 
-  db.run(sql, [userId, clearUsername, clearEmail, hashedPassword], function(err) {
-    if (err) {
-      console.error('User already exists or error.', err.message);
-      return res.status(400).json({ error: "User already exists or error" });
+  try {
+    const result = await db.query(sqlQuery, values);
+
+    return res.json({
+      message: 'Success! User is created!',
+      id: result.rows[0].user_id
+    });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'User with this email or username already exists.' });
     }
-    return res.json({ message: "Success! User is created!", id: userId });
-    })
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
 const mfaLimiter = rateLimit({
@@ -94,28 +105,23 @@ const mfaLimiter = rateLimit({
   message: { error: 'Too many 2FA attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
-})
+});
 
-// 2FA
-app.post('/check-code2fa', mfaLimiter, (req, res) => {
+app.post('/check-code2fa', mfaLimiter, async (req, res) => {
   let { userCode } = req.body;
 
   if (typeof userCode != 'string') {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
-
   userCode = userCode.trim();
 
   if (!/^\d{4}$/.test(userCode)) {
     return res.status(400).json({ error: 'Code incorrect or invalid format!' });
   }
-
   if (!req.session.correct2faCode || !req.session.tempUserID) {
     return res.status(400).json({ error: 'Session expired or invalid. Please login again.' });
   }
-
   if (req.session.correct2faCode !== userCode) {
-
     req.session.mfaAttempts = (req.session.mfaAttempts || 0) + 1;
     if (req.session.mfaAttempts >= 5) {
       return req.session.destroy(err => {
@@ -123,21 +129,21 @@ app.post('/check-code2fa', mfaLimiter, (req, res) => {
           console.error('Failed close session, ', err.message);
           return res.status(500).json({ error: SERVER_ERROR_MSG });
         }
-
         res.clearCookie('connect.sid');
         return res.json('Too many 2FA attempts. Please try again later.');
       })
     }
     return res.status(401).json({ error: 'Code incorrect.' });
   }
+  const sqlQuery = `SELECT user_id, username, email, role FROM users WHERE user_id = $1;`;
 
-  const sql = 'SELECT id, username, email, role FROM users WHERE id = ?';
-  db.get(sql, [req.session.tempUserID], (err, user) => {
-    if (err) {
-      console.log('Failed check 2FA, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+  try {
+    const result = await db.query(sqlQuery, [req.session.tempUserID]);
+    const user = result.rows[0];
+
+    if (result.rows.length === 0) {
+      throw new Error(USER_NOT_FOUND);
     }
-
     if (req.session.stayLoggedIn === true) {
       const SECRET_KEY = process.env.SESSION_SECRET || 'super_secret_key_123';
       const days = 30;
@@ -153,9 +159,8 @@ app.post('/check-code2fa', mfaLimiter, (req, res) => {
         httpOnly: true,
         secure: false,
         sameSite: 'strict'
-      })
+      });
     }
-
     req.session.userID = req.session.tempUserID;
     req.session.username = user.username;
     req.session.role = user.role;
@@ -164,8 +169,14 @@ app.post('/check-code2fa', mfaLimiter, (req, res) => {
     delete req.session.correct2faCode;
     delete req.session.mfaAttempts;
 
-    return res.json({ message: "Welcome!", user: user.username });
-  })
+    return res.json({
+      message: "Welcome!",
+      user: user.username
+    });
+  } catch (err) {
+    console.log('Failed check 2FA, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
 const loginLimiter = rateLimit({
@@ -175,51 +186,51 @@ const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts. Pleasy try again later.' },
   standardHeaders: true,
   legacyHeaders: false
-})
+});
 
-// login
-app.post("/login", loginLimiter, async (req, res) => {
-  let {email, password, stayLoggedIn} = req.body;
+app.post('/login', loginLimiter, async (req, res) => {
+  let { email, password, stayLoggedIn } = req.body;
 
   const emailRes = validation.isValidEmail(email);
-  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
+  if (!emailRes.valid) return res.status(400).json({ error: emailRes.error });
 
   const passwordRes = validation.isValidPassword(password);
-  if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error });
+  if (!passwordRes.valid) return res.status(400).json({ error: passwordRes.error });
 
-  const clearEmail = emailRes.value;
-  const clearPassword = passwordRes.value;
+  const cleanEmail = emailRes.value;
+  const cleanPassword = passwordRes.value;
 
-  const sql = "SELECT * FROM users WHERE email = ?";
+  const sqlQuery = `SELECT * FROM users WHERE email = $1;`;
 
-  db.get(sql, [clearEmail], async (err, user) => {
-    if (err) {
-      console.error('Failed login, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
-    }
+  try {
+    const result = await db.query(sqlQuery, [cleanEmail]);
 
-    if (!user) {
+    if (result.rows.length === 0) {
       const fakeHash = '$2b$10$s6eA28lQfeDZkJTVPRTtGeWJYQ2jpJDZIiNLVnPDaEfiWfg0sk25e';
-      await bcrypt.compare(clearPassword, fakeHash);
-      return res.status(400).json({error: AUTH_ERROR_MSG});
+      await bcrypt.compare(cleanPassword, fakeHash);
+      return res.status(400).json({ error: AUTH_ERROR_MSG });
     }
+    const user = result.rows[0];
 
-    const isMatchPassword = await bcrypt.compare(clearPassword, user.password);
+    const isMatchPassword = await bcrypt.compare(cleanPassword, user.password);
 
     if (!isMatchPassword) {
-      return res.status(400).json({error: AUTH_ERROR_MSG});
+      return res.status(400).json({ error: AUTH_ERROR_MSG });
     }
-
     const generatedCode = String(crypto.randomInt(0, 10000)).padStart(4, '0');
     console.log(generatedCode);
 
     req.session.correct2faCode = generatedCode;
-    req.session.tempUserID = user.id;
+    req.session.tempUserID = user.user_id;
     req.session.stayLoggedIn = !!stayLoggedIn;
-    req.session.password = clearPassword;
+    // req.session.password = cleanPassword;
 
-    return res.json({ message: "MFA_REQUIRED" });
-  })
+    return res.json({ message: 'MFA_REQUIRED' });
+
+  } catch (err) {
+      console.error('Failed login, ', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
 app.get('/login2', (req, res) => {
@@ -227,357 +238,388 @@ app.get('/login2', (req, res) => {
 })
 
 // open access for profile.html
-app.get("/profile", middleware.checkAuth, (req, res) => {
-  return res.sendFile(path.join(__dirname, "private", "profile.html"));
+app.get('/profile', middleware.checkAuth, (req, res) => {
+  return res.sendFile(path.join(__dirname, 'private', 'profile.html'));
 })
 
-app.get("/api/profile", middleware.checkAuth, (req, res) => {
+app.get('/api/profile', middleware.checkAuth, async (req, res) => {
   if (!req.query.id) {
-    const sql = "SELECT id, username, email, role, bio FROM users WHERE id = ?";
-    db.get(sql, [req.session.userID], (err, user) => {
-      if (err || !user) {
-        console.log('Failed profile user, ', err.message);
-        return res.status(500).json({ error: SERVER_ERROR_MSG });
+    try {
+      const sqlQuery = `
+        SELECT user_id, username, email, role, bio
+        FROM users WHERE user_id = $1;
+      `;
+      const result = await db.query(sqlQuery, [req.session.userID]);
+
+      if (result.rows.length === 0) {
+        throw new Error(USER_NOT_FOUND);
       }
+      const user = result.rows[0];
+
       return res.json({
-        id: user.id,
+        id: user.user_id,
         username: user.username,
         email: user.email,
         role: user.role,
         bio: user.bio
-      })
-    })
+      });
+    } catch (err) {
+      console.error(err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    }
   } else {
-    const id = req.query.id;
-    const sql = "SELECT id, username, email, role FROM users WHERE username = ?";
-    db.get(sql, [id], (err, user) => {
-      if (err || !user) {
-        return res.status(500).json({ error: SERVER_ERROR_MSG });
+    try {
+      const id = req.query.id;
+      const sqlQuery = `
+        SELECT user_id, username, email, role
+        FROM users WHERE username = $1;
+      `;
+      const result = await db.query(sqlQuery, [id]);
+
+      if (result.rows.length === 0) {
+        throw new Error(USER_NOT_FOUND);
       }
+      const user = result.rows[0];
+
       return res.json({
-        id: user.id,
+        id: user.user_id,
         username: user.username,
         email: user.email,
         role: user.role
-      })
-    })
+      });
+    } catch (err) {
+      console.error('Failed profile search:', err.message);
+      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    }
   }
-})
+});
 
-// logout
-app.post("/logout", (req, res) => {
+app.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      return res.status(500).json({ error: "Could not log out." });
+      return res.status(500).json({ error: 'Could not log out.' });
     }
-    res.clearCookie("connect.sid");
-    res.json({message: "Logged out successfuly."})
+    res.clearCookie('connect.sid');
+    return res.json({ message: 'Logged out successfuly.' });
   })
 })
 
-// change username
-app.put("/change-username", middleware.checkAuth, (req, res) => {
-  let {username} = req.body;
+app.put('/change-username', middleware.checkAuth, async (req, res) => {
+  let { username } = req.body;
 
   const usernameRes = validation.isValidUsername(username);
   if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error });
-  const clearUsername = usernameRes.value;
+  const cleanUsername = usernameRes.value;
 
-  const sql = `UPDATE users SET username = ? WHERE id = ?`;
-
-  db.run(sql, [clearUsername, req.session.userID], function(err) {
-    if (err) {
-      console.error('Failed change username, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+  try {
+    const sqlUpdateUsername = `
+      UPDATE users SET username = $1
+      WHERE user_id = $2 RETURNING username;
+    `;
+    const result = await db.query(sqlQuery, [sqlUpdateUsername, req.session.userID]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: USER_NOT_FOUND });
     }
-
-    req.session.username = clearUsername;
+    const user = result.rows[0];
+    req.session.username = user.username;
 
     return res.json({
-      message: "Success!",
-      username: clearUsername
-    })
-
-  })
+      message: 'Username updated successful!',
+      username: user.username
+    });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Username already exists.' });
+    }
+    console.error('Failed change username, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
-// change email
-app.put("/change-email", middleware.checkAuth, (req, res) => {
+app.put('/change-email', middleware.checkAuth, async (req, res) => {
   let { email } = req.body;
 
   const emailRes = validation.isValidEmail(email);
-  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
-  const clearEmail = emailRes.value;
+  if (!emailRes.valid) return res.status(400).json({ error: emailRes.error });
+  const cleanEmail = emailRes.value;
 
-  const sql = `UPDATE users SET email = ? WHERE id = ? `;
-
-  db.run(sql, [clearEmail, req.session.userID], function(err) {
-    if (err) {
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+  try {
+    const sqlUpdateEmail = `UPDATE users SET email = $1 WHERE user_id = $2 RETURNING email;`;
+    const result = await db.query(sqlUpdateEmail, [cleanEmail, req.session.userID]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: USER_NOT_FOUND });
     }
+    const user = result.rows[0];
 
     return res.json({
-      message: "Success!",
-      email: clearEmail
-    })
-
-  })
+      message: 'Email updated successful!',
+      email: user.email
+    });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Email already exists.' });
+    }
+    console.error('Failed change email, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
 // change password
-app.put("/change-password", middleware.checkAuth, async (req, res) => {
-  const {currPassword, newPassword1, newPassword2} = req.body;
+app.put('/change-password', middleware.checkAuth, async (req, res) => {
+  const { currPassword, newPassword1, newPassword2 } = req.body;
 
   const currPasswordRes = validation.isValidPassword(currPassword);
   const newPassword1Res = validation.isValidPassword(newPassword1);
   const newPassword2Res = validation.isValidPassword(newPassword2);
 
   if (!currPasswordRes.valid || !newPassword1Res.valid || !newPassword2Res.valid) {
-    return res.status(400).json({ error: "Invalid password format!" });
+    return res.status(400).json({ error: 'Invalid password format!' });
   }
+  const cleanCurrPassword = currPasswordRes.value;
+  const cleanNewPassword1 = newPassword1Res.value;
+  const cleanNewPassword2 = newPassword2Res.value;
 
-  const clearCurrPassword = currPasswordRes.value;
-  const clearNewPassword1 = newPassword1Res.value;
-  const clearNewPassword2 = newPassword2Res.value;
-
-  if (clearNewPassword1 !== clearNewPassword2) {
+  if (cleanNewPassword1 !== cleanNewPassword2) {
     return res.status(400).json({ error: "New passwords mismatch." });
   }
+  try {
+    const sqlFindUser = `SELECT password FROM users WHERE user_id = $1;`;
+    const result = await db.query(sqlFindUser, [req.session.userID]);
 
-  const SQL_checkCurrPass = "SELECT password FROM users WHERE id = ?";
+    if (result.rows.length === 0) {
+      throw new Error(USER_NOT_FOUND);
+    }
+    const user = result.rows[0];
 
-  db.get(SQL_checkCurrPass, [req.session.userID], async (err, user) => {
-    if (err || !user) return res.status(500).json({ error: "User not found!" })
+    const isCurrPassword = await bcrypt.compare(cleanCurrPassword, user.password);
+    if (!isCurrPassword) return res.status(401).json({ error: 'Current password incorrect' });
+    const hashedPassword = await bcrypt.hash(cleanNewPassword1, 10);
 
-    const isCurrPassword = await bcrypt.compare(clearCurrPassword, user.password);
+    const sqlUpdatePass = `UPDATE users SET password = $1 WHERE user_id = $2;`;
+    await db.query(sqlQuery, [sqlUpdatePass, req.session.userID]);
 
-    if (!isCurrPassword) return res.status(401).json({ error: "Current password incorrect" })
+    return res.json({ message: 'Password updated successfully!' });
 
-    const hashedPassword = await bcrypt.hash(clearNewPassword1, 10);
-
-    const updatePassword = "UPDATE users SET password = ? WHERE id = ?";
-
-    db.run(updatePassword, [hashedPassword, req.session.userID], (err) => {
-      if (err) {
-        console.error('Failed change password, ', err.message);
-        return res.status(500).json({ error: SERVER_ERROR_MSG });
-      }
-
-      return res.json({ message: "Password updated successfully!" });
-    })
-  })
+  } catch (err) {
+    console.error('Failed change password, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
-// delete account
-app.delete("/delete-account", middleware.checkAuth, async (req, res) => {
+app.delete('/delete-account', middleware.checkAuth, async (req, res) => {
   const { password } = req.body;
 
   const passwordRes = validation.isValidPassword(password);
-  if (!passwordRes.valid) return res.status(400).json({ message: passwordRes.error });
-  const clearPassword = passwordRes.value;
+  if (!passwordRes.valid) return res.status(400).json({ error: passwordRes.error });
+  const cleanPassword = passwordRes.value;
 
-  const userID = req.session.userID;
+  try {
+    const sqlCheckCurrPass = `SELECT password FROM users WHERE user_id = $1;`;
+    const result = await db.query(sqlCheckCurrPass, [req.session.userID]);
 
-  const SQL_checkCurrPass = "SELECT password FROM users WHERE id = ?";
-
-  db.get(SQL_checkCurrPass, [userID], async (err, user) => {
-    if (err || !user) {
-      console.log('Failed password to delete account, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    if (result.rows.length === 0) {
+      throw new Error(USER_NOT_FOUND);
     }
+    const user = result.rows[0];
 
-    const isPassword = await bcrypt.compare(clearPassword, user.password);
+    const isPassword = await bcrypt.compare(cleanPassword, user.password);
+    if (!isPassword) return res.status(401).json({ error: 'Password incorrect' });
 
-    if (!isPassword) return res.status(401).json({ error: "Password incorrect" });
+    const sqlDeleteAcc = `DELETE FROM users WHERE user_id = $1`;
+    await db.query(sqlDeleteAcc, [req.session.userID]);
 
-    const SQL_deleteAccount = "DELETE FROM users WHERE id = ?";
-
-    db.run(SQL_deleteAccount, [userID], function(err) {
+    req.session.destroy((err) => {
       if (err) {
-        console.error("Failed delete account, ", err.message);
+        console.error('Failed delete account session cleanup: ', err.message);
         return res.status(500).json({ error: SERVER_ERROR_MSG });
       }
-
-      req.session.destroy((err) => {
-        if (err) {
-          console.error('Failed delete account, ', err.message);
-          return res.status(500).json({ error: SERVER_ERROR_MSG });
-        }
-        res.clearCookie("connect.sid");
-        return res.json({ message: "Account permanently deleted" });
-      })
-    })
-  })
+      res.clearCookie('connect.sid');
+      return res.json({ message: 'Account deleted successful!' });
+    });
+  } catch (err) {
+    console.log('Failed password to delete account, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
 // search users
-app.post("/api/search-user", middleware.checkAuth, async (req, res) => {
+app.post('/api/search-user', middleware.checkAuth, async (req, res) => {
   const { username } = req.body;
 
   const usernameRes = validation.isValidUsername(username);
-  if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error })
-  const clearUsername = usernameRes.value;
+  if (!usernameRes.valid) return res.status(400).json({ message: usernameRes.error });
+  const cleanUsername = usernameRes.value;
 
-  const sqlSearchUsers = "SELECT id, username FROM users WHERE username = ? AND id != ?";
+  try {
+    const sqlSearchUsers = `
+      SELECT user_id, username FROM users
+      WHERE username = $1 AND user_id != $2;
+    `;
+    const result = await db.query(sqlSearchUsers, [cleanUsername, req.session.userID]);
 
-  db.get(sqlSearchUsers, [clearUsername, req.session.userID], async (err, user) => {
-    if (err) {
-      console.error("Failed search users, ", err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found!' });
     }
-
-    if (!user) { // if user not found
-      return res.status(404).json({ error: "User not found!" });
-    }
+    const user = result.rows[0];
 
     return res.json({
-      id: user.id,
+      id: user.user_id,
       username: user.username
-    })
-
-  })
+    });
+  } catch (err) {
+    console.error('Failed search users, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
 })
 
-// send message
-app.post("/api/send-message", middleware.checkAuth, async (req, res) => {
+app.post('/api/send-message', middleware.checkAuth, async (req, res) => {
   const { receiver_id, content } = req.body;
   const sender_id = req.session.userID;
 
   const contentRes = validation.isValidMessage(content);
-  if (!contentRes.valid) return res.status(400).json({ message: contentRes.error });
-  const clearContent = contentRes.value;
+  if (!contentRes.valid) return res.status(400).json({ error: contentRes.error });
+  const cleanContent = contentRes.value;
 
-  const sqlSendMessage = `
-    INSERT INTO messages (sender_id, receiver_id, content)
-    VALUES (?, ?, ?)`;
-
-  db.run(sqlSendMessage, [sender_id, receiver_id, clearContent], function(err) {
-    if (err) {
-      console.error("Failed send message, ", err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
-    }
+  try {
+    const sqlSendMessage = `
+      INSERT INTO messages (sender_id, receiver_id, content)
+      VALUES ($1, $2, $3)
+      RETURNING message_id, sent_at;
+    `;
+    const result = await db.query(sqlSendMessage, [sender_id, receiver_id, cleanContent]);
+    const savedMessage = result.rows[0];
 
     const newMessage = {
+      message_id: savedMessage.message_id,
       sender_id: sender_id,
       receiver_id: receiver_id,
-      content: clearContent,
-      sent_at: new Date().toISOString()
+      content: cleanContent,
+      sent_at: savedMessage.sent_at
     };
-
     io.to(`user_${receiver_id}`).emit('new_message', newMessage);
     io.to(`user_${sender_id}`).emit('new_message', newMessage);
 
     return res.json({ message: 'Message sent successfully!' });
-  })
-})
+
+  } catch (err) {
+    if (err.code === '23503') {
+      return res.status(404).json({ error: 'Receiver user not found.' });
+    }
+    console.error("Failed send message, ", err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
 
 // show messages
-app.get('/api/messages/:otherId', middleware.checkAuth, (req, res) => {
+app.get('/api/messages/:otherId', middleware.checkAuth, async (req, res) => {
   const myId = req.session.userID;
   const otherId = req.params.otherId;
 
-  const sqlShowMessages = `
-    SELECT * FROM messages
-    WHERE (sender_id = ? AND receiver_id = ?)
-    OR (sender_id = ? AND receiver_id = ?)
-    ORDER BY sent_at ASC
-  `;
+  try {
+    const sqlShowMessages = `
+      SELECT * FROM messages
+      WHERE (sender_id = $1 AND receiver_id = $2)
+      OR (sender_id = $2 AND receiver_id = $1)
+      ORDER BY sent_at ASC;
+    `;
+    const result = await db.query(sqlShowMessages, [myId, otherId]);
+    return res.json(result.rows);
 
-  db.all(sqlShowMessages, [myId, otherId, otherId, myId], (err, rows) => {
-    if (err) {
-      console.error('Failed show messages, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+  } catch (err) {
+    if (err.code === '22P02') {
+      return res.status(400).json({
+        error: 'Invalid user ID format!'
+      });
     }
-    return res.json(rows);
-  })
-})
+    console.error("Failed show message, ", err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
 
 app.get('/admin-panel', middleware.isAdmin, (req, res) => {
   return res.sendFile(path.join(__dirname, 'private', 'admin-panel.html'));
 })
 
-app.post('/get-transcript', (req, res) => {
+app.post('/get-transcript', async (req, res) => {
   const senderId = req.session.userID;
   const { receiverId } = req.body;
 
-  const sql = `SELECT content FROM messages
-  WHERE sender_id = ? AND receiver_id = ?
-  OR sender_id = ? AND receiver_id = ?`;
-
-  db.all(sql, [senderId, receiverId, receiverId, senderId], (err, rows) => {
-    if (err) {
-      console.error('Failed get transcript, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+  try {
+    const sqlGetTranscript = `
+      SELECT content FROM messages
+      WHERE sender_id = $1 AND receiver_id = $2
+      OR sender_id = $2 AND receiver_id = $1
+      ORDER BY sent_at ASC;
+    `;
+    const result = await db.query(sqlGetTranscript, [senderId, receiverId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No messages found!' });
     }
-    if (!rows || rows.length === 0) return res.status(404).json({ error: 'No messages found!' });
-    const chatContent = rows.map(row => row.content).join('\n');
+    const chatContent = result.rows.map(row => row.content).join('\n');
     const transcriptsName = uuidv4();
     const pathFile = `./chats/${transcriptsName}.txt`;
 
     res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
     fs.writeFile(pathFile, chatContent, 'utf-8', (err) => {
-      if (err) return res.status(500).json({ error: 'Database error!' });
       res.download(pathFile, `transcript-${transcriptsName}.txt`, (downloadErr) => {
         if (downloadErr) console.log('Download error: ', downloadErr);
         fs.unlink(pathFile, () => {});
       })
     })
-  })
-})
+  } catch (err) {
+    if (err.code === '22P02') {
+      return res.status(400).json({ error: 'Invalid user ID format.' });
+    }
+    console.error('Failed get transcript, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
 
 app.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
   const emailRes = validation.isValidEmail(email);
-  if (!emailRes.valid) return res.status(400).json({ message: emailRes.error });
+  if (!emailRes.valid) return res.status(400).json({ error: emailRes.error });
+  const cleanEmail = emailRes.value;
 
-  const sql = `SELECT id, email FROM users WHERE email = ?`
+  try {
+    const sqlFindUser = `SELECT user_id, email FROM users WHERE email = $1`;
+    const foundUser = await db.query(sqlFindUser, [cleanEmail]);
 
-  db.get(sql, [email], (err, user) => {
-    if (err) {
-      console.error('Failed forgot password, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+    if (foundUser.rows.length === 0) {
+      return res.json({
+        message: 'If this email exists, a reset link has been generated.'
+      });
     }
+    const userId = foundUser.rows[0].user_id;
 
-    if (!user) {
-      return res.json({ message: "If this email exists, a reset link has been generated." });
-    }
-
-    const user_id = user.id;
-
-    const invalidateOldTokensSql = `
-    UPDATE password_resets
-    SET used = 2
-    WHERE user_id = ? AND used = 0
+    const sqlInvalidateOldTokens = `
+      UPDATE password_resets
+      SET used = 2
+      WHERE user_id = $1 AND used = 0;
     `;
-    db.run(invalidateOldTokensSql, [user_id], (clearErr) => {
-      if (clearErr) {
-        console.error('Failed invalidate old token, ', clearErr.message);
-        return res.status(500).json({ error: 'Failed invalidate token!' });
-      }
+    await db.query(sqlInvalidateOldTokens, [userId]);
 
-      const generatedToken = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto.createHash('sha256').update(generatedToken).digest('hex');
-      const expires_at = Date.now() + 15 * 60 * 1000;
+    const generatedToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(generatedToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-      const insertSql = `
+    const sqlInsert = `
       INSERT INTO password_resets (user_id, token, expires_at)
-      VALUES (?, ?, ?)
-      `;
-      db.run(insertSql, [user_id, hashedToken, expires_at], (err) => {
-        if (err) {
-          console.error('Failed insert token, ', err.message);
-          return res.status(500).json({ error: 'Database error' });
-        }
+      VALUES ($1, $2, $3);
+    `;
+    await db.query(sqlInsert, [userId, hashedToken, expiresAt]);
 
-        return res.json({
-          message: `Link for reset password`,
-          link: `/reset-password.html?token=${generatedToken}`
-        })
-      })
-    })
-  })
-})
+    return res.json({
+      message: `Link for reset password`,
+      link: `/reset-password.html?token=${generatedToken}`
+    });
+
+  } catch (err) {
+    console.error('Failed forgot password, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
 
 app.put('/reset-password', async (req, res) => {
   const { password_1, password_2, token } = req.body;
@@ -587,62 +629,46 @@ app.put('/reset-password', async (req, res) => {
   const newPassword2Res = validation.isValidPassword(password_2);
 
   if (!newPassword1Res.valid || !newPassword2Res.valid) {
-    return res.status(400).json({ error: "Invalid password format!" });
+    return res.status(400).json({ error: 'Invalid password format!' });
   }
 
-  const clearPassword1 = newPassword1Res.value;
-  const clearPassword2 = newPassword2Res.value;
+  const cleanPassword1 = newPassword1Res.value;
+  const cleanPassword2 = newPassword2Res.value;
 
-  if (clearPassword1 !== clearPassword2) {
-    return res.status(400).json({ error: "New passwords mismatch." });
+  if (cleanPassword1 !== cleanPassword2) {
+    return res.status(400).json({ error: 'New passwords mismatch.' });
   }
 
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-  const now = Date.now();
 
-  const checkTokenSql = `
-  SELECT user_id FROM password_resets
-  WHERE token = ? AND expires_at > ? AND used = 0
-  `
-
-  db.get(checkTokenSql, [hashedToken, now], async (err, row) => {
-    if (err) {
-      console.error('Failed check token, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
+  try {
+    const sqlCheckTokenSql = `
+      SELECT user_id FROM password_resets
+      WHERE token = $1 AND expires_at > NOW() AND used = 0;
+    `;
+    const result = await db.query(sqlCheckTokenSql, [hashedToken]);
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired token.' });
     }
+    const userId = result.rows[0].user_id;
 
-    if (!row) return res.status(400).json({ error: 'Invalid or expired token.' });
+    const encryptedPassword = await bcrypt.hash(cleanPassword1, 10);
 
-    const userId = row.user_id;
+    const sqlUpdatePassword = `UPDATE users SET password = $1 WHERE user_id = $2`;
+    await db.query(sqlUpdatePassword, [encryptedPassword, userId]);
 
-    try {
-      const encryptedPassword = await bcrypt.hash(clearPassword1, 10);
-      const updatePassword = `UPDATE users SET password = ? WHERE id = ?`;
+    const sqlInvalidateToken = `UPDATE password_resets SET used = 1 WHERE token = $1;`;
+    await db.query(sqlInvalidateToken, [hashedToken]);
 
-      db.run(updatePassword, [encryptedPassword, userId], (updateErr) => {
-        if (updateErr) {
-          console.error('Failed reset password, ', updateErr.message);
-          return res.status(500).json({ error: 'Failed to update password.' });
-        }
+    return res.json({ message: 'Password successfully reset. You can log in now.' });
 
-        const invalitadeTokenSql = `UPDATE password_resets SET used = 1 WHERE token = ?`;
-        db.run(invalitadeTokenSql, [hashedToken], (tokenErr) => {
-          if (tokenErr) {
-            console.error('Failed to invalitade token, ', tokenErr.message);
-            return res.status(500).json({ error: SERVER_ERROR_MSG });
-          }
-          console.log('Password successfully reset. You can log in now.');
-          return res.json({ message: 'Password successfully reset. You can log in now.' });
-        })
-      })
-    } catch (bcryptErr) {
-      console.log(bcryptErr);
-      return res.status(500).json({ error: 'Hashing error.' });
-    }
-  })
-})
+  } catch (err) {
+    console.log('Failed to reset password:', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
 
-app.put('/update-bio', (req, res) => {
+app.put('/update-bio', middleware.checkAuth, async (req, res) => {
   if (!req.session.userID) return res.status(401).json({ error: 'Unauthorized' });
 
   let { bio } = req.body;
@@ -651,63 +677,81 @@ app.put('/update-bio', (req, res) => {
   bio = bio.trim();
   if (bio.length > 300) return res.status(400).json({ error: 'Bio is too long.' });
 
-  const insertBioSql = `UPDATE users SET bio = ? WHERE id = ?`;
-  db.run(insertBioSql, [bio, req.session.userID], (err) => {
-    if (err) {
-      console.error('Failed update bio, ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
-    }
-    console.log(`User ${req.session.userID} updated bio successfully!`)
-    return res.json({ message: 'Bio successfully updated!' });
-  })
-})
+  try {
+    const sqlUpdateBio = `UPDATE users SET bio = $1 WHERE user_id = $2;`;
+    await db.query(sqlUpdateBio, [bio, req.session.userID]);
 
-app.post('/api/feed', (req, res) => {
+    return res.json({ message: 'Bio updated successfully!' });
+
+  } catch (err) {
+    console.error('Failed update bio, ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
+
+app.post('/api/feed', middleware.checkAuth, async (req, res) => {
   const { message } = req.body;
-  const username = req.session.username || 'Anonymous';
+  const username = req.session.username;
 
   if (!message || message.trim() === '') {
     return res.status(400).json({ error: 'Message cannot be empty.' });
   }
+  const cleanMessage = message.trim();
 
-  const sql = `INSERT INTO feed_posts (username, message) VALUES (?, ?)`;
-  db.run(sql, [username, message], function(err) {
-    if (err) {
-      console.error('Failed feed (post), ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
-    }
+  try {
+    const sqlInsertPost = `INSERT INTO feed_posts (username, message) VALUES ($1, $2);`;
+    await db.query(sqlInsertPost, [username, cleanMessage]);
+
     return res.json({ message: 'Post added successfully.' });
-  });
-});
 
-app.get('/api/feed', (req, res) => {
-  const sql = 'SELECT username, message, created_at FROM feed_posts ORDER BY id_post DESC';
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error('Failed feed (get), ', err.message);
-      return res.status(500).json({ error: SERVER_ERROR_MSG });
-    }
-    res.json(rows);
-  });
-});
-
-app.get('/api/avatars', (req, res) => {
-  const gender = req.query.gender || 'all';
-  let query;
-  let param;
-  if (gender === 'all') {
-    query = `SELECT * FROM avatars WHERE is_premium = 0;`;
-  } else {
-    query = `SELECT * FROM avatars WHERE gender = ? AND is_premium = 0`;
-    param = [gender];
+  } catch (err) {
+    console.error('Failed feed (post), ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
   }
+});
 
-  db.all(query, param, (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    return res.json(rows);
-  })
-})
+app.get('/api/feed', async (req, res) => {
+  try {
+    const sqlShowPosts = `
+      SELECT username, message, created_at
+      FROM feed_posts
+      ORDER BY post_id DESC;
+    `;
+    const result = await db.query(sqlShowPosts);
+
+    return res.json(result.rows);
+
+  } catch (err) {
+    console.error('Failed feed (get), ', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
+
+app.get('/api/avatars', async (req, res) => {
+  try {
+    const gender = req.query.gender || 'all';
+    let sqlGetAvatar;
+    let param = [];
+
+    if (gender === 'all') {
+      sqlGetAvatar = `SELECT * FROM avatars WHERE is_premium = FALSE;`;
+    } else {
+      sqlGetAvatar = `
+        SELECT * FROM avatars
+        WHERE gender = $1 AND is_premium = FALSE;
+      `;
+      param = [gender];
+    }
+    const result = await db.query(sqlGetAvatar, param);
+
+    return res.json(result.rows);
+
+  } catch (err) {
+    console.error('Failed get avatars:', err.message);
+    return res.status(500).json({ error: SERVER_ERROR_MSG });
+  }
+});
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[!] SERVER is running on http://localhost:${PORT}`);
-})
+});
